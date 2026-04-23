@@ -1,3 +1,27 @@
+import function _homeDirectory(): Result<string, string> from "native_path.hpp" as doof_path::homeDirectory
+import function _tempDirectory(): string from "native_path.hpp" as doof_path::tempDirectory
+import function _currentWorkingDirectory(): Result<string, string> from "native_path.hpp" as doof_path::currentWorkingDirectory
+export import function setCurrentWorkingDirectory(path: string): Result<void, string> from "native_path.hpp" as doof_path::setCurrentWorkingDirectory
+
+function normalizePathResult(result: Result<string, string>): Result<string, string> {
+  return case result {
+    s: Success => Success { value: join([s.value]) },
+    f: Failure => Failure { error: f.error }
+  }
+}
+
+export function homeDirectory(): Result<string, string> {
+  return normalizePathResult(_homeDirectory())
+}
+
+export function tempDirectory(): string {
+  return join([_tempDirectory()])
+}
+
+export function currentWorkingDirectory(): Result<string, string> {
+  return normalizePathResult(_currentWorkingDirectory())
+}
+
 export function join(parts: string[]): string {
   let absolute = false
   let segments: string[] = []

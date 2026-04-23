@@ -5,7 +5,10 @@ POSIX path manipulation utilities. All functions operate on string paths and han
 ## Usage
 
 ```doof
-import { join, dirname, basename, stem, extension, isAbsolute } from "std/path"
+import {
+	basename, currentWorkingDirectory, dirname, extension, homeDirectory,
+	isAbsolute, join, setCurrentWorkingDirectory, stem, tempDirectory,
+} from "std/path"
 
 joined := join(["/home/user", "projects", "../docs/readme.txt"])
 // "/home/user/docs/readme.txt"
@@ -14,6 +17,11 @@ dir := dirname(joined)    // "/home/user/docs"
 base := basename(joined)  // "readme.txt"
 name := stem(joined)      // "readme"
 ext := extension(joined)  // ".txt"
+
+home := try! homeDirectory()
+temp := tempDirectory()
+cwd := try! currentWorkingDirectory()
+try! setCurrentWorkingDirectory(home)
 ```
 
 ## Exports
@@ -87,4 +95,44 @@ Return `true` if the path starts with `/`.
 ```doof
 isAbsolute("/usr/local/bin") // true
 isAbsolute("relative/path") // false
+```
+
+---
+
+#### `homeDirectory(): Result<string, string>`
+
+Return the current user's home directory as an absolute normalized path.
+
+```doof
+home := try! homeDirectory()
+```
+
+---
+
+#### `tempDirectory(): string`
+
+Return the process temp directory as an absolute normalized path. This uses `TMPDIR` when it is set and falls back to `"/tmp"`.
+
+```doof
+tempDirectory() // e.g. "/tmp"
+```
+
+---
+
+#### `currentWorkingDirectory(): Result<string, string>`
+
+Return the process current working directory as an absolute normalized path.
+
+```doof
+cwd := try! currentWorkingDirectory()
+```
+
+---
+
+#### `setCurrentWorkingDirectory(path: string): Result<void, string>`
+
+Change the process current working directory.
+
+```doof
+try! setCurrentWorkingDirectory("/tmp")
 ```
