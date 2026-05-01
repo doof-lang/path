@@ -5,8 +5,8 @@ export import function setCurrentWorkingDirectory(path: string): Result<void, st
 
 function normalizePathResult(result: Result<string, string>): Result<string, string> {
   return case result {
-    s: Success => Success { value: join([s.value]) },
-    f: Failure => Failure { error: f.error }
+    s: Success -> Success { value: join([s.value]) },
+    f: Failure -> Failure { error: f.error }
   }
 }
 
