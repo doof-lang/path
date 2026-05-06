@@ -5,8 +5,8 @@ import {
 
 function isSuccess<T, E>(result: Result<T, E>): bool {
   return case result {
-    _: Success => true,
-    _: Failure => false
+    _: Success -> true,
+    _: Failure -> false
   }
 }
 
