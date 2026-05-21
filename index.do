@@ -135,7 +135,7 @@ function renderPath(segments: string[], absolute: bool): string {
 function lastSeparatorIndex(path: string): int {
   let index = path.length - 1
   while index >= 0 {
-    if path.charAt(index) == "/" {
+    if path.charAt(index) == '/' {
       return index
     }
     index -= 1
@@ -146,7 +146,7 @@ function lastSeparatorIndex(path: string): int {
 function lastDotIndex(path: string): int {
   let index = path.length - 1
   while index >= 0 {
-    if path.charAt(index) == "." {
+    if path.charAt(index) == '.' {
       return index
     }
     index -= 1
