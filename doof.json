@@ -4,7 +4,16 @@
   "license": "ISC",
   "build": {
     "native": {
-      "extraCopyPaths": ["./native_path.hpp"]
+      "extraCopyPaths": ["./native_path.hpp"],
+      "macos": {
+        "frameworks": ["CoreFoundation"]
+      },
+      "iosSimulator": {
+        "frameworks": ["CoreFoundation"]
+      },
+      "iosDevice": {
+        "frameworks": ["CoreFoundation"]
+      }
     }
   },
   "dependencies": {}

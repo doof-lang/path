@@ -7,7 +7,7 @@ POSIX path manipulation utilities. All functions operate on string paths and han
 ```doof
 import {
 	basename, currentWorkingDirectory, dirname, extension, homeDirectory,
-	isAbsolute, join, setCurrentWorkingDirectory, stem, tempDirectory,
+	isAbsolute, join, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
 } from "std/path"
 
 joined := join(["/home/user", "projects", "../docs/readme.txt"])
@@ -21,6 +21,7 @@ ext := extension(joined)  // ".txt"
 home := try! homeDirectory()
 temp := tempDirectory()
 cwd := try! currentWorkingDirectory()
+resources := try! resourcesDirectory()
 try! setCurrentWorkingDirectory(home)
 ```
 
@@ -125,6 +126,16 @@ Return the process current working directory as an absolute normalized path.
 
 ```doof
 cwd := try! currentWorkingDirectory()
+```
+
+---
+
+#### `resourcesDirectory(): Result<string, string>`
+
+Return the directory that should be used to load bundled application resources. For macOS `.app` bundles this resolves to `Contents/Resources`; for iOS `.app` bundles this resolves to the app bundle directory. Other builds resolve to the directory containing the executable.
+
+```doof
+resources := try! resourcesDirectory()
 ```
 
 ---

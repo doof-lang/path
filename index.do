@@ -1,6 +1,7 @@
 import function _homeDirectory(): Result<string, string> from "native_path.hpp" as doof_path::homeDirectory
 import function _tempDirectory(): string from "native_path.hpp" as doof_path::tempDirectory
 import function _currentWorkingDirectory(): Result<string, string> from "native_path.hpp" as doof_path::currentWorkingDirectory
+import function _resourcesDirectory(): Result<string, string> from "native_path.hpp" as doof_path::resourcesDirectory
 export import function setCurrentWorkingDirectory(path: string): Result<void, string> from "native_path.hpp" as doof_path::setCurrentWorkingDirectory
 
 function normalizePathResult(result: Result<string, string>): Result<string, string> {
@@ -20,6 +21,10 @@ export function tempDirectory(): string {
 
 export function currentWorkingDirectory(): Result<string, string> {
   return normalizePathResult(_currentWorkingDirectory())
+}
+
+export function resourcesDirectory(): Result<string, string> {
+  return normalizePathResult(_resourcesDirectory())
 }
 
 export function join(parts: string[]): string {

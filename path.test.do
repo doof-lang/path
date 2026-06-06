@@ -1,6 +1,6 @@
 import {
   basename, currentWorkingDirectory, dirname, extension, homeDirectory,
-  isAbsolute, join, setCurrentWorkingDirectory, stem, tempDirectory,
+  isAbsolute, join, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
 } from "./index"
 
 function isSuccess<T, E>(result: Result<T, E>): bool {
@@ -95,6 +95,13 @@ export function testHomeAndTempDirectoryReturnAbsolutePaths(): void {
   assert(isAbsolute(home), "expected homeDirectory to return an absolute path")
   assert(temp.length > 0, "expected tempDirectory to return a non-empty path")
   assert(isAbsolute(temp), "expected tempDirectory to return an absolute path")
+}
+
+export function testResourcesDirectoryReturnsAnAbsolutePath(): void {
+  resources := try! resourcesDirectory()
+
+  assert(resources.length > 0, "expected resourcesDirectory to return a non-empty path")
+  assert(isAbsolute(resources), "expected resourcesDirectory to return an absolute path")
 }
 
 export function testCurrentWorkingDirectoryAndSetterRoundTrip(): void {
