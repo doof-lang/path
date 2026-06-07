@@ -9,6 +9,7 @@
 #include <optional>
 #include <pwd.h>
 #include <string>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <vector>
 
@@ -150,6 +151,61 @@ inline doof::Result<std::string, std::string> resolveApplicationIdentifier(const
     return doof::Result<std::string, std::string>::success(appId.value());
 }
 
+inline doof::Result<void, std::string> ensureSingleDirectory(const std::string& path) {
+    struct stat st {};
+    if (::stat(path.c_str(), &st) == 0) {
+        if (S_ISDIR(st.st_mode)) {
+            return doof::Result<void, std::string>::success();
+        }
+        return doof::Result<void, std::string>::failure(path + " exists but is not a directory");
+    }
+
+    if (errno != ENOENT) {
+        return doof::Result<void, std::string>::failure(
+            std::string("Failed to inspect directory ") + path + ": " + std::strerror(errno)
+        );
+    }
+
+    if (::mkdir(path.c_str(), 0777) == 0) {
+        return doof::Result<void, std::string>::success();
+    }
+
+    if (errno == EEXIST) {
+        return ensureSingleDirectory(path);
+    }
+
+    return doof::Result<void, std::string>::failure(
+        std::string("Failed to create directory ") + path + ": " + std::strerror(errno)
+    );
+}
+
+inline doof::Result<void, std::string> ensureDirectory(const std::string& path) {
+    if (path.empty()) {
+        return doof::Result<void, std::string>::failure("Directory path cannot be empty");
+    }
+    if (path.find('\0') != std::string::npos) {
+        return doof::Result<void, std::string>::failure("Directory path contains a NUL byte");
+    }
+
+    size_t searchFrom = path[0] == '/' ? 1 : 0;
+    while (true) {
+        const size_t separator = path.find('/', searchFrom);
+        const std::string current = separator == std::string::npos ? path : path.substr(0, separator);
+        if (!current.empty() && current != ".") {
+            auto result = ensureSingleDirectory(current);
+            if (!result.isSuccess()) {
+                return result;
+            }
+        }
+        if (separator == std::string::npos) {
+            break;
+        }
+        searchFrom = separator + 1;
+    }
+
+    return doof::Result<void, std::string>::success();
+}
+
 inline doof::Result<std::string, std::string> homeDirectory() {
     const char* home = std::getenv("HOME");
     if (home != nullptr && home[0] != '\0') {
@@ -181,24 +237,27 @@ inline doof::Result<std::string, std::string> applicationDirectory(
         return doof::Result<std::string, std::string>::failure(home.error());
     }
 
-    return doof::Result<std::string, std::string>::success(
-        home.value() + "/Library/" + appleRelativeBase + "/" + identifier.value()
-    );
+    const std::string path = home.value() + "/Library/" + appleRelativeBase + "/" + identifier.value();
 #else
+    std::string path;
     const char* xdgBase = std::getenv(xdgEnvironmentName);
     if (xdgBase != nullptr && xdgBase[0] != '\0') {
-        return doof::Result<std::string, std::string>::success(std::string(xdgBase) + "/" + identifier.value());
-    }
+        path = std::string(xdgBase) + "/" + identifier.value();
+    } else {
+        auto home = homeDirectory();
+        if (!home.isSuccess()) {
+            return doof::Result<std::string, std::string>::failure(home.error());
+        }
 
-    auto home = homeDirectory();
-    if (!home.isSuccess()) {
-        return doof::Result<std::string, std::string>::failure(home.error());
+        path = home.value() + "/" + unixRelativeBase + "/" + identifier.value();
     }
-
-    return doof::Result<std::string, std::string>::success(
-        home.value() + "/" + unixRelativeBase + "/" + identifier.value()
-    );
 #endif
+
+    auto directory = ensureDirectory(path);
+    if (!directory.isSuccess()) {
+        return doof::Result<std::string, std::string>::failure(directory.error());
+    }
+    return doof::Result<std::string, std::string>::success(path);
 }
 
 }  // namespace detail

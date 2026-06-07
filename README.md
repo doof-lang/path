@@ -124,7 +124,7 @@ tempDirectory() // e.g. "/tmp"
 
 #### `dataDirectory(appId: string | null = null): Result<string, string>`
 
-Return the per-application data directory as an absolute normalized path. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
+Return the per-application data directory as an absolute normalized path. On success, the directory exists and is ready to use; if the target path exists but is not a directory, this returns `Failure`. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
 
 ```doof
 data := try! dataDirectory("dev.example.tool")
@@ -134,7 +134,7 @@ data := try! dataDirectory("dev.example.tool")
 
 #### `cacheDirectory(appId: string | null = null): Result<string, string>`
 
-Return the per-application cache directory as an absolute normalized path. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
+Return the per-application cache directory as an absolute normalized path. On success, the directory exists and is ready to use; if the target path exists but is not a directory, this returns `Failure`. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
 
 ```doof
 cache := try! cacheDirectory("dev.example.tool")

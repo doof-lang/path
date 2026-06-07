@@ -2,6 +2,7 @@ import {
   basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
   isAbsolute, join, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
 } from "./index"
+import { isDirectory, remove, writeText } from "std/fs"
 
 function isSuccess<T, E>(result: Result<T, E>): bool {
   return case result {
@@ -130,6 +131,39 @@ export function testApplicationDirectoriesUseSuppliedIdentifierForConsoleApps():
   assert(isAbsolute(cache), "expected cacheDirectory to return an absolute path")
   assert(basename(data) == appId, "expected dataDirectory to use the supplied app id")
   assert(basename(cache) == appId, "expected cacheDirectory to use the supplied app id")
+}
+
+export function testApplicationDirectoriesAreCreatedAndReadyToUse(): void {
+  dataAppId := "dev.doof.path-tests-created-data"
+  cacheAppId := "dev.doof.path-tests-created-cache"
+  data := try! dataDirectory(dataAppId)
+  cache := try! cacheDirectory(cacheAppId)
+  dataProbe := join([data, "probe.txt"])
+  cacheProbe := join([cache, "probe.txt"])
+
+  assert(isDirectory(data), "expected dataDirectory to create a directory")
+  assert(isDirectory(cache), "expected cacheDirectory to create a directory")
+
+  try! writeText(dataProbe, "data")
+  try! writeText(cacheProbe, "cache")
+
+  try! remove(dataProbe)
+  try! remove(cacheProbe)
+  try! remove(data)
+  try! remove(cache)
+}
+
+export function testApplicationDirectoryFailsWhenTargetIsNotADirectory(): void {
+  appId := "dev.doof.path-tests-file-conflict"
+  directory := try! cacheDirectory(appId)
+
+  try! remove(directory)
+  try! writeText(directory, "not a directory")
+
+  blocked := cacheDirectory(appId)
+  assert(isFailure(blocked), "expected cacheDirectory to fail when the target path is a file")
+
+  try! remove(directory)
 }
 
 export function testCurrentWorkingDirectoryAndSetterRoundTrip(): void {
