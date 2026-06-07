@@ -1,5 +1,5 @@
 import {
-  basename, currentWorkingDirectory, dirname, extension, homeDirectory,
+  basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
   isAbsolute, join, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
 } from "./index"
 
@@ -7,6 +7,13 @@ function isSuccess<T, E>(result: Result<T, E>): bool {
   return case result {
     _: Success -> true,
     _: Failure -> false
+  }
+}
+
+function isFailure<T, E>(result: Result<T, E>): bool {
+  return case result {
+    _: Success -> false,
+    _: Failure -> true
   }
 }
 
@@ -102,6 +109,27 @@ export function testResourcesDirectoryReturnsAnAbsolutePath(): void {
 
   assert(resources.length > 0, "expected resourcesDirectory to return a non-empty path")
   assert(isAbsolute(resources), "expected resourcesDirectory to return an absolute path")
+}
+
+export function testApplicationDirectoriesRequireAnIdentifierForConsoleApps(): void {
+  data := dataDirectory()
+  cache := cacheDirectory()
+
+  assert(isFailure(data), "expected dataDirectory without an app id to fail for console applications")
+  assert(isFailure(cache), "expected cacheDirectory without an app id to fail for console applications")
+}
+
+export function testApplicationDirectoriesUseSuppliedIdentifierForConsoleApps(): void {
+  appId := "dev.doof.path-tests"
+  data := try! dataDirectory(appId)
+  cache := try! cacheDirectory(appId)
+
+  assert(data.length > 0, "expected dataDirectory to return a non-empty path")
+  assert(cache.length > 0, "expected cacheDirectory to return a non-empty path")
+  assert(isAbsolute(data), "expected dataDirectory to return an absolute path")
+  assert(isAbsolute(cache), "expected cacheDirectory to return an absolute path")
+  assert(basename(data) == appId, "expected dataDirectory to use the supplied app id")
+  assert(basename(cache) == appId, "expected cacheDirectory to use the supplied app id")
 }
 
 export function testCurrentWorkingDirectoryAndSetterRoundTrip(): void {

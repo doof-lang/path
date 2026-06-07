@@ -1,5 +1,7 @@
 import function _homeDirectory(): Result<string, string> from "native_path.hpp" as doof_path::homeDirectory
 import function _tempDirectory(): string from "native_path.hpp" as doof_path::tempDirectory
+import function _dataDirectory(appId: string | null = null): Result<string, string> from "native_path.hpp" as doof_path::dataDirectory
+import function _cacheDirectory(appId: string | null = null): Result<string, string> from "native_path.hpp" as doof_path::cacheDirectory
 import function _currentWorkingDirectory(): Result<string, string> from "native_path.hpp" as doof_path::currentWorkingDirectory
 import function _resourcesDirectory(): Result<string, string> from "native_path.hpp" as doof_path::resourcesDirectory
 export import function setCurrentWorkingDirectory(path: string): Result<void, string> from "native_path.hpp" as doof_path::setCurrentWorkingDirectory
@@ -17,6 +19,14 @@ export function homeDirectory(): Result<string, string> {
 
 export function tempDirectory(): string {
   return join([_tempDirectory()])
+}
+
+export function dataDirectory(appId: string | null = null): Result<string, string> {
+  return normalizePathResult(_dataDirectory(appId))
+}
+
+export function cacheDirectory(appId: string | null = null): Result<string, string> {
+  return normalizePathResult(_cacheDirectory(appId))
 }
 
 export function currentWorkingDirectory(): Result<string, string> {

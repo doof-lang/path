@@ -6,6 +6,7 @@
 #include <climits>
 #include <cstdlib>
 #include <cstring>
+#include <optional>
 #include <pwd.h>
 #include <string>
 #include <unistd.h>
@@ -70,6 +71,35 @@ inline doof::Result<std::string, std::string> executablePath() {
 }
 
 #if defined(__APPLE__)
+inline doof::Result<std::string, std::string> cfStringToString(CFStringRef value, const char* description) {
+    if (value == nullptr) {
+        return doof::Result<std::string, std::string>::failure(std::string("Failed to get ") + description);
+    }
+
+    const CFIndex length = CFStringGetLength(value);
+    const CFIndex maxSize = CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8) + 1;
+    std::vector<char> buffer(static_cast<size_t>(maxSize));
+    if (!CFStringGetCString(value, buffer.data(), maxSize, kCFStringEncodingUTF8)) {
+        return doof::Result<std::string, std::string>::failure(std::string("Failed to convert ") + description + " to UTF-8");
+    }
+
+    return doof::Result<std::string, std::string>::success(std::string(buffer.data()));
+}
+
+inline doof::Result<std::string, std::string> bundleIdentifier() {
+    CFBundleRef bundle = CFBundleGetMainBundle();
+    if (bundle == nullptr) {
+        return doof::Result<std::string, std::string>::failure("Failed to get main bundle");
+    }
+
+    CFStringRef identifier = CFBundleGetIdentifier(bundle);
+    if (identifier == nullptr) {
+        return doof::Result<std::string, std::string>::failure("Application identifier is required for console applications");
+    }
+
+    return cfStringToString(identifier, "bundle identifier");
+}
+
 inline doof::Result<std::string, std::string> bundleResourcesDirectory() {
     CFBundleRef bundle = CFBundleGetMainBundle();
     if (bundle == nullptr) {
@@ -93,7 +123,32 @@ inline doof::Result<std::string, std::string> bundleResourcesDirectory() {
 }
 #endif
 
-}  // namespace detail
+inline doof::Result<std::string, std::string> resolveApplicationIdentifier(const std::optional<std::string>& appId) {
+    if (appId.has_value()) {
+        if (appId.value().empty()) {
+            return doof::Result<std::string, std::string>::failure("Application identifier cannot be empty");
+        }
+        if (appId.value().find('/') != std::string::npos || appId.value().find('\0') != std::string::npos) {
+            return doof::Result<std::string, std::string>::failure("Application identifier cannot contain a path separator or NUL byte");
+        }
+    }
+
+#if defined(__APPLE__)
+    auto bundledIdentifier = bundleIdentifier();
+    if (bundledIdentifier.isSuccess()) {
+        if (appId.has_value() && appId.value() != bundledIdentifier.value()) {
+            return doof::Result<std::string, std::string>::failure("Application identifier must match the bundle identifier");
+        }
+        return bundledIdentifier;
+    }
+#endif
+
+    if (!appId.has_value()) {
+        return doof::Result<std::string, std::string>::failure("Application identifier is required for console applications");
+    }
+
+    return doof::Result<std::string, std::string>::success(appId.value());
+}
 
 inline doof::Result<std::string, std::string> homeDirectory() {
     const char* home = std::getenv("HOME");
@@ -109,6 +164,49 @@ inline doof::Result<std::string, std::string> homeDirectory() {
     return doof::Result<std::string, std::string>::failure("Failed to determine the home directory");
 }
 
+inline doof::Result<std::string, std::string> applicationDirectory(
+    const std::optional<std::string>& appId,
+    const char* appleRelativeBase,
+    const char* xdgEnvironmentName,
+    const char* unixRelativeBase
+) {
+    auto identifier = resolveApplicationIdentifier(appId);
+    if (!identifier.isSuccess()) {
+        return doof::Result<std::string, std::string>::failure(identifier.error());
+    }
+
+#if defined(__APPLE__)
+    auto home = homeDirectory();
+    if (!home.isSuccess()) {
+        return doof::Result<std::string, std::string>::failure(home.error());
+    }
+
+    return doof::Result<std::string, std::string>::success(
+        home.value() + "/Library/" + appleRelativeBase + "/" + identifier.value()
+    );
+#else
+    const char* xdgBase = std::getenv(xdgEnvironmentName);
+    if (xdgBase != nullptr && xdgBase[0] != '\0') {
+        return doof::Result<std::string, std::string>::success(std::string(xdgBase) + "/" + identifier.value());
+    }
+
+    auto home = homeDirectory();
+    if (!home.isSuccess()) {
+        return doof::Result<std::string, std::string>::failure(home.error());
+    }
+
+    return doof::Result<std::string, std::string>::success(
+        home.value() + "/" + unixRelativeBase + "/" + identifier.value()
+    );
+#endif
+}
+
+}  // namespace detail
+
+inline doof::Result<std::string, std::string> homeDirectory() {
+    return detail::homeDirectory();
+}
+
 inline std::string tempDirectory() {
     const char* temp = std::getenv("TMPDIR");
     if (temp != nullptr && temp[0] != '\0') {
@@ -116,6 +214,14 @@ inline std::string tempDirectory() {
     }
 
     return "/tmp";
+}
+
+inline doof::Result<std::string, std::string> dataDirectory(const std::optional<std::string>& appId = std::nullopt) {
+    return detail::applicationDirectory(appId, "Application Support", "XDG_DATA_HOME", ".local/share");
+}
+
+inline doof::Result<std::string, std::string> cacheDirectory(const std::optional<std::string>& appId = std::nullopt) {
+    return detail::applicationDirectory(appId, "Caches", "XDG_CACHE_HOME", ".cache");
 }
 
 inline doof::Result<std::string, std::string> currentWorkingDirectory() {

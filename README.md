@@ -6,7 +6,7 @@ POSIX path manipulation utilities. All functions operate on string paths and han
 
 ```doof
 import {
-	basename, currentWorkingDirectory, dirname, extension, homeDirectory,
+	basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
 	isAbsolute, join, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
 } from "std/path"
 
@@ -20,6 +20,8 @@ ext := extension(joined)  // ".txt"
 
 home := try! homeDirectory()
 temp := tempDirectory()
+data := try! dataDirectory("dev.example.tool")
+cache := try! cacheDirectory("dev.example.tool")
 cwd := try! currentWorkingDirectory()
 resources := try! resourcesDirectory()
 try! setCurrentWorkingDirectory(home)
@@ -116,6 +118,26 @@ Return the process temp directory as an absolute normalized path. This uses `TMP
 
 ```doof
 tempDirectory() // e.g. "/tmp"
+```
+
+---
+
+#### `dataDirectory(appId: string | null = null): Result<string, string>`
+
+Return the per-application data directory as an absolute normalized path. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
+
+```doof
+data := try! dataDirectory("dev.example.tool")
+```
+
+---
+
+#### `cacheDirectory(appId: string | null = null): Result<string, string>`
+
+Return the per-application cache directory as an absolute normalized path. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
+
+```doof
+cache := try! cacheDirectory("dev.example.tool")
 ```
 
 ---
