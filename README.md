@@ -12,7 +12,7 @@ POSIX path manipulation utilities. All functions operate on string paths and han
 ```doof
 import {
 	basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
-	isAbsolute, join, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
+	isAbsolute, join, resourcePath, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
 } from "std/path"
 
 joined := join(["/home/user", "projects", "../docs/readme.txt"])
@@ -29,6 +29,7 @@ data := try! dataDirectory("dev.example.tool")
 cache := try! cacheDirectory("dev.example.tool")
 cwd := try! currentWorkingDirectory()
 resources := try! resourcesDirectory()
+logo := try! resourcePath("images/logo.png")
 try! setCurrentWorkingDirectory(home)
 ```
 
@@ -163,6 +164,17 @@ Return the directory that should be used to load bundled application resources. 
 
 ```doof
 resources := try! resourcesDirectory()
+```
+
+---
+
+#### `resourcePath(path: string): Result<string, string>`
+
+Resolve `path` against `resourcesDirectory()` and return the normalized absolute path. Returns `Failure` if the normalized result would escape the resources directory.
+
+```doof
+logo := try! resourcePath("images/logo.png")
+blocked := resourcePath("../../badpanda") // Failure
 ```
 
 ---

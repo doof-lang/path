@@ -37,6 +37,17 @@ export function resourcesDirectory(): Result<string, string> {
   return normalizePathResult(_resourcesDirectory())
 }
 
+export function resourcePath(path: string): Result<string, string> {
+  try resources := resourcesDirectory()
+  resolved := join([resources, path])
+
+  if resolved == resources || resolved.startsWith(resources + "/") {
+    return Success { value: resolved }
+  }
+
+  return Failure { error: "Resource path cannot escape the resources directory" }
+}
+
 export function join(parts: string[]): string {
   let absolute = false
   let segments: string[] = []

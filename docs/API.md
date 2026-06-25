@@ -49,6 +49,17 @@ require an `appId`. Bundled applications can use their bundle identifier when
 
 If the target exists but is not a directory, the result is `Failure<string>`.
 
+## Resource Paths
+
+`resourcesDirectory()` returns the base directory for bundled resources.
+`resourcePath(path)` resolves a resource-relative path against that base and
+returns `Failure` if normalization would escape the resources directory.
+
+```doof
+logo := try! resourcePath("images/logo.png")
+blocked := resourcePath("../../badpanda") // Failure
+```
+
 ## API
 
 ### Native-backed directory helpers
@@ -60,6 +71,7 @@ export function dataDirectory(appId: string | null = null): Result<string, strin
 export function cacheDirectory(appId: string | null = null): Result<string, string>
 export function currentWorkingDirectory(): Result<string, string>
 export function resourcesDirectory(): Result<string, string>
+export function resourcePath(path: string): Result<string, string>
 export import function setCurrentWorkingDirectory(path: string): Result<void, string>
 ```
 

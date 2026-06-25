@@ -1,6 +1,6 @@
 import {
   basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
-  isAbsolute, join, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
+  isAbsolute, join, resourcePath, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
 } from "./index"
 import { isDirectory, remove, writeText } from "std/fs"
 
@@ -110,6 +110,32 @@ export function testResourcesDirectoryReturnsAnAbsolutePath(): void {
 
   assert(resources.length > 0, "expected resourcesDirectory to return a non-empty path")
   assert(isAbsolute(resources), "expected resourcesDirectory to return an absolute path")
+}
+
+export function testResourcePathResolvesInsideResourcesDirectory(): void {
+  resources := try! resourcesDirectory()
+  resolved := try! resourcePath("images/logo.png")
+
+  assert(resolved == join([resources, "images/logo.png"]), "expected resourcePath to resolve relative resources")
+}
+
+export function testResourcePathNormalizesTraversalInsideResourcesDirectory(): void {
+  resources := try! resourcesDirectory()
+  resolved := try! resourcePath("images/../config.json")
+
+  assert(resolved == join([resources, "config.json"]), "expected resourcePath to normalize safe traversal")
+}
+
+export function testResourcePathRejectsParentTraversalOutsideResourcesDirectory(): void {
+  blocked := resourcePath("../../badpanda")
+
+  assert(isFailure(blocked), "expected resourcePath to reject paths escaping the resources directory")
+}
+
+export function testResourcePathRejectsAbsolutePathOutsideResourcesDirectory(): void {
+  blocked := resourcePath("/tmp/badpanda")
+
+  assert(isFailure(blocked), "expected resourcePath to reject absolute paths outside the resources directory")
 }
 
 export function testApplicationDirectoriesRequireAnIdentifierForConsoleApps(): void {
