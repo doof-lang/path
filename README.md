@@ -2,6 +2,11 @@
 
 POSIX path manipulation utilities. All functions operate on string paths and handle normalization (resolving `.` and `..` segments) without touching the filesystem.
 
+## Documentation
+
+- [Guide and API reference](docs/API.md) explains normalization rules, directory helpers, path splitting, and filesystem-independent behavior.
+- Tests can be run with `doof test path`.
+
 ## Usage
 
 ```doof
