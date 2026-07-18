@@ -1,5 +1,5 @@
 import {
-  basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
+  absolute, basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
   isAbsolute, join, resourcePath, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
 } from "./index"
 import { isDirectory, remove, writeText } from "std/fs"
@@ -29,6 +29,13 @@ function matchesWorkingDirectoryPath(actual: string, expected: string): bool {
   // macOS commonly exposes /var through a /private/var realpath in getcwd().
   return normalizedActual == "/private" + normalizedExpected
     || normalizedExpected == "/private" + normalizedActual
+}
+
+export function testAbsoluteResolvesRelativeAndNormalizesAbsolutePaths(): void {
+  cwd := try! currentWorkingDirectory()
+  assert(try! absolute(".") == join([cwd]), "expected dot to resolve to the working directory")
+  assert(try! absolute("nested/../file.do") == join([cwd, "file.do"]), "expected relative paths to resolve and normalize")
+  assert(try! absolute("/tmp/../tmp/file.do") == "/tmp/file.do", "expected absolute paths to remain absolute and normalize")
 }
 
 export function testJoinConcatenatesRelativeParts(): void {

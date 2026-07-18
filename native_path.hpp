@@ -294,6 +294,25 @@ inline doof::Result<std::string, std::string> currentWorkingDirectory() {
     }
 }
 
+inline doof::Result<std::string, std::string> absolute(const std::string& path) {
+    if (path.find('\0') != std::string::npos) {
+        return doof::Failure<std::string>{"Path contains a NUL byte"};
+    }
+    if (!path.empty() && path.front() == '/') {
+        return doof::Success<std::string>{path};
+    }
+
+    auto workingDirectory = currentWorkingDirectory();
+    if (!doof::is_success(workingDirectory)) {
+        return workingDirectory;
+    }
+    const std::string& base = doof::success_value(workingDirectory);
+    if (path.empty()) {
+        return doof::Success<std::string>{base};
+    }
+    return doof::Success<std::string>{base + "/" + path};
+}
+
 inline doof::Result<void, std::string> setCurrentWorkingDirectory(const std::string& path) {
     if (path.find('\0') != std::string::npos) {
         return doof::Failure<std::string>{"Working directory path contains a NUL byte"};

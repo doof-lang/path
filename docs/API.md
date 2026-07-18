@@ -28,6 +28,10 @@ join([])                                 // "."
 All native directory helpers normalize their successful results through
 `join([path])`, so callers get consistent path strings.
 
+`absolute(path)` resolves relative input against the current working directory
+and applies the same normalization. It returns `Failure` if the working
+directory cannot be read.
+
 ## Path Splitting
 
 Use these helpers for string-level path analysis:
@@ -70,6 +74,7 @@ export function tempDirectory(): string
 export function dataDirectory(appId: string | null = null): Result<string, string>
 export function cacheDirectory(appId: string | null = null): Result<string, string>
 export function currentWorkingDirectory(): Result<string, string>
+export function absolute(path: string): Result<string, string>
 export function resourcesDirectory(): Result<string, string>
 export function resourcePath(path: string): Result<string, string>
 export import function setCurrentWorkingDirectory(path: string): Result<void, string>

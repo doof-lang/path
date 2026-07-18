@@ -11,7 +11,7 @@ POSIX path manipulation utilities. All functions operate on string paths and han
 
 ```doof
 import {
-	basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
+	absolute, basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
 	isAbsolute, join, resourcePath, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
 } from "std/path"
 
@@ -31,9 +31,20 @@ cwd := try! currentWorkingDirectory()
 resources := try! resourcesDirectory()
 logo := try! resourcePath("images/logo.png")
 try! setCurrentWorkingDirectory(home)
+resolved := try! absolute("src/main.do")
 ```
 
 ## Exports
+
+#### `absolute(path: string): Result<string, string>`
+
+Resolve a relative path against the current working directory and normalize the result. Already-absolute paths are normalized without changing their root.
+
+```doof
+source := try! absolute("src/main.do")
+```
+
+---
 
 #### `join(parts: string[]): string`
 
