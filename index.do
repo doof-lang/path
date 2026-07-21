@@ -1,11 +1,11 @@
 import isolated function _homeDirectory(): Result<string, string> from "native_path.hpp" as doof_path::homeDirectory
 import isolated function _tempDirectory(): string from "native_path.hpp" as doof_path::tempDirectory
-import isolated function _dataDirectory(appId: string | null = null): Result<string, string> from "native_path.hpp" as doof_path::dataDirectory
-import isolated function _cacheDirectory(appId: string | null = null): Result<string, string> from "native_path.hpp" as doof_path::cacheDirectory
+import isolated function _dataDirectory(appId: string | none = none): Result<string, string> from "native_path.hpp" as doof_path::dataDirectory
+import isolated function _cacheDirectory(appId: string | none = none): Result<string, string> from "native_path.hpp" as doof_path::cacheDirectory
 import isolated function _currentWorkingDirectory(): Result<string, string> from "native_path.hpp" as doof_path::currentWorkingDirectory
 import isolated function _absolute(path: string): Result<string, string> from "native_path.hpp" as doof_path::absolute
 import isolated function _resourcesDirectory(): Result<string, string> from "native_path.hpp" as doof_path::resourcesDirectory
-export import function setCurrentWorkingDirectory(path: string): Result<void, string> from "native_path.hpp" as doof_path::setCurrentWorkingDirectory
+export import function setCurrentWorkingDirectory(path: string): Result<none, string> from "native_path.hpp" as doof_path::setCurrentWorkingDirectory
 
 function normalizePathResult(result: Result<string, string>): Result<string, string> {
   return case result {
@@ -22,11 +22,11 @@ export function tempDirectory(): string {
   return join([_tempDirectory()])
 }
 
-export function dataDirectory(appId: string | null = null): Result<string, string> {
+export function dataDirectory(appId: string | none = none): Result<string, string> {
   return normalizePathResult(_dataDirectory(appId))
 }
 
-export function cacheDirectory(appId: string | null = null): Result<string, string> {
+export function cacheDirectory(appId: string | none = none): Result<string, string> {
   return normalizePathResult(_cacheDirectory(appId))
 }
 

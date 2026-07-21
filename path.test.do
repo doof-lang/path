@@ -31,49 +31,49 @@ function matchesWorkingDirectoryPath(actual: string, expected: string): bool {
     || normalizedExpected == "/private" + normalizedActual
 }
 
-export function testAbsoluteResolvesRelativeAndNormalizesAbsolutePaths(): void {
+export function testAbsoluteResolvesRelativeAndNormalizesAbsolutePaths(): none {
   cwd := try! currentWorkingDirectory()
   assert(try! absolute(".") == join([cwd]), "expected dot to resolve to the working directory")
   assert(try! absolute("nested/../file.do") == join([cwd, "file.do"]), "expected relative paths to resolve and normalize")
   assert(try! absolute("/tmp/../tmp/file.do") == "/tmp/file.do", "expected absolute paths to remain absolute and normalize")
 }
 
-export function testJoinConcatenatesRelativeParts(): void {
+export function testJoinConcatenatesRelativeParts(): none {
   assert(
     join(["foo", "bar", "baz.txt"]) == "foo/bar/baz.txt",
     "expected join to concatenate relative path parts"
   )
 }
 
-export function testJoinNormalizesSinglePart(): void {
+export function testJoinNormalizesSinglePart(): none {
   assert(
     join(["foo/norm/../bar"]) == "foo/bar",
     "expected join to normalize a single path argument"
   )
 }
 
-export function testJoinResetsWhenANewAbsolutePartAppears(): void {
+export function testJoinResetsWhenANewAbsolutePartAppears(): none {
   assert(
     join(["foo/bar", "/tmp", "logs/output.txt"]) == "/tmp/logs/output.txt",
     "expected an absolute part to override earlier path segments"
   )
 }
 
-export function testJoinPreservesRelativeParentTraversal(): void {
+export function testJoinPreservesRelativeParentTraversal(): none {
   assert(
     join(["foo", "../../bar"]) == "../bar",
     "expected join to preserve leading parent traversal in relative paths"
   )
 }
 
-export function testJoinClampsParentTraversalAtRoot(): void {
+export function testJoinClampsParentTraversalAtRoot(): none {
   assert(
     join(["/foo", "../../bar"]) == "/bar",
     "expected absolute joins to stop parent traversal at the root"
   )
 }
 
-export function testJoinReturnsDotForAnEmptyRelativeResult(): void {
+export function testJoinReturnsDotForAnEmptyRelativeResult(): none {
   assert(
     join(["foo", ".."]) == ".",
     "expected join to use dot for an empty relative path"
@@ -81,28 +81,28 @@ export function testJoinReturnsDotForAnEmptyRelativeResult(): void {
   assert(join([]) == ".", "expected join of no parts to be dot")
 }
 
-export function testDirnameAndBasenameNormalizeTrailingSeparators(): void {
+export function testDirnameAndBasenameNormalizeTrailingSeparators(): none {
   assert(dirname("/foo/bar/") == "/foo", "expected dirname to normalize trailing separators")
   assert(basename("/foo/bar/") == "bar", "expected basename to normalize trailing separators")
   assert(dirname("single") == ".", "expected dirname of a single relative name to be dot")
 }
 
-export function testStemAndExtensionSplitTheFinalSuffix(): void {
+export function testStemAndExtensionSplitTheFinalSuffix(): none {
   assert(stem("/foo/archive.tar.gz") == "archive.tar", "expected stem to drop only the final suffix")
   assert(extension("/foo/archive.tar.gz") == ".gz", "expected extension to return only the final suffix")
 }
 
-export function testStemAndExtensionTreatLeadingDotsAsPartOfTheName(): void {
+export function testStemAndExtensionTreatLeadingDotsAsPartOfTheName(): none {
   assert(stem(".gitignore") == ".gitignore", "expected a leading dot file to keep its full stem")
   assert(extension(".gitignore") == "", "expected a leading dot file to have no extension")
 }
 
-export function testIsAbsoluteChecksForLeadingSlash(): void {
+export function testIsAbsoluteChecksForLeadingSlash(): none {
   assert(isAbsolute("/tmp/log") == true, "expected a leading slash path to be absolute")
   assert(isAbsolute("tmp/log") == false, "expected a relative path to remain relative")
 }
 
-export function testHomeAndTempDirectoryReturnAbsolutePaths(): void {
+export function testHomeAndTempDirectoryReturnAbsolutePaths(): none {
   home := try! homeDirectory()
   temp := tempDirectory()
 
@@ -112,40 +112,40 @@ export function testHomeAndTempDirectoryReturnAbsolutePaths(): void {
   assert(isAbsolute(temp), "expected tempDirectory to return an absolute path")
 }
 
-export function testResourcesDirectoryReturnsAnAbsolutePath(): void {
+export function testResourcesDirectoryReturnsAnAbsolutePath(): none {
   resources := try! resourcesDirectory()
 
   assert(resources.length > 0, "expected resourcesDirectory to return a non-empty path")
   assert(isAbsolute(resources), "expected resourcesDirectory to return an absolute path")
 }
 
-export function testResourcePathResolvesInsideResourcesDirectory(): void {
+export function testResourcePathResolvesInsideResourcesDirectory(): none {
   resources := try! resourcesDirectory()
   resolved := try! resourcePath("images/logo.png")
 
   assert(resolved == join([resources, "images/logo.png"]), "expected resourcePath to resolve relative resources")
 }
 
-export function testResourcePathNormalizesTraversalInsideResourcesDirectory(): void {
+export function testResourcePathNormalizesTraversalInsideResourcesDirectory(): none {
   resources := try! resourcesDirectory()
   resolved := try! resourcePath("images/../config.json")
 
   assert(resolved == join([resources, "config.json"]), "expected resourcePath to normalize safe traversal")
 }
 
-export function testResourcePathRejectsParentTraversalOutsideResourcesDirectory(): void {
+export function testResourcePathRejectsParentTraversalOutsideResourcesDirectory(): none {
   blocked := resourcePath("../../badpanda")
 
   assert(isFailure(blocked), "expected resourcePath to reject paths escaping the resources directory")
 }
 
-export function testResourcePathRejectsAbsolutePathOutsideResourcesDirectory(): void {
+export function testResourcePathRejectsAbsolutePathOutsideResourcesDirectory(): none {
   blocked := resourcePath("/tmp/badpanda")
 
   assert(isFailure(blocked), "expected resourcePath to reject absolute paths outside the resources directory")
 }
 
-export function testApplicationDirectoriesRequireAnIdentifierForConsoleApps(): void {
+export function testApplicationDirectoriesRequireAnIdentifierForConsoleApps(): none {
   data := dataDirectory()
   cache := cacheDirectory()
 
@@ -153,7 +153,7 @@ export function testApplicationDirectoriesRequireAnIdentifierForConsoleApps(): v
   assert(isFailure(cache), "expected cacheDirectory without an app id to fail for console applications")
 }
 
-export function testApplicationDirectoriesUseSuppliedIdentifierForConsoleApps(): void {
+export function testApplicationDirectoriesUseSuppliedIdentifierForConsoleApps(): none {
   appId := "dev.doof.path-tests"
   data := try! dataDirectory(appId)
   cache := try! cacheDirectory(appId)
@@ -166,7 +166,7 @@ export function testApplicationDirectoriesUseSuppliedIdentifierForConsoleApps():
   assert(basename(cache) == appId, "expected cacheDirectory to use the supplied app id")
 }
 
-export function testApplicationDirectoriesAreCreatedAndReadyToUse(): void {
+export function testApplicationDirectoriesAreCreatedAndReadyToUse(): none {
   dataAppId := "dev.doof.path-tests-created-data"
   cacheAppId := "dev.doof.path-tests-created-cache"
   data := try! dataDirectory(dataAppId)
@@ -186,7 +186,7 @@ export function testApplicationDirectoriesAreCreatedAndReadyToUse(): void {
   try! remove(cache)
 }
 
-export function testApplicationDirectoryFailsWhenTargetIsNotADirectory(): void {
+export function testApplicationDirectoryFailsWhenTargetIsNotADirectory(): none {
   appId := "dev.doof.path-tests-file-conflict"
   directory := try! cacheDirectory(appId)
 
@@ -199,7 +199,7 @@ export function testApplicationDirectoryFailsWhenTargetIsNotADirectory(): void {
   try! remove(directory)
 }
 
-export function testCurrentWorkingDirectoryAndSetterRoundTrip(): void {
+export function testCurrentWorkingDirectoryAndSetterRoundTrip(): none {
   original := try! currentWorkingDirectory()
   let target = tempDirectory()
   if target == original {
