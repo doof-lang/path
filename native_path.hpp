@@ -7,11 +7,20 @@
 #include <cstdlib>
 #include <cstring>
 #include <optional>
-#include <pwd.h>
 #include <string>
+#include <vector>
+
+#if defined(_WIN32)
+#define NOMINMAX
+#include <windows.h>
+#ifdef small
+#undef small
+#endif
+#else
+#include <pwd.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <vector>
+#endif
 
 #if defined(__APPLE__)
 #include <CoreFoundation/CoreFoundation.h>
@@ -21,6 +30,93 @@
 namespace doof_path {
 
 namespace detail {
+
+inline bool isWindowsDriveRoot(const std::string& path) {
+    if (path.size() < 3 || path[1] != ':' || (path[2] != '/' && path[2] != '\\')) {
+        return false;
+    }
+    const char drive = path[0];
+    return (drive >= 'A' && drive <= 'Z') || (drive >= 'a' && drive <= 'z');
+}
+
+#if defined(_WIN32)
+inline std::string windowsError(const char* operation, DWORD error = ::GetLastError()) {
+    return std::string(operation) + " (Windows error " + std::to_string(error) + ")";
+}
+
+inline doof::Result<std::wstring, std::string> utf8ToWide(const std::string& value) {
+    if (value.empty()) {
+        return doof::Success<std::wstring>{std::wstring()};
+    }
+    const int size = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()), nullptr, 0);
+    if (size == 0) {
+        return doof::Failure<std::string>{windowsError("Failed to decode UTF-8 path")};
+    }
+    std::wstring result(static_cast<size_t>(size), L'\0');
+    if (::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()), result.data(), size) == 0) {
+        return doof::Failure<std::string>{windowsError("Failed to decode UTF-8 path")};
+    }
+    return doof::Success<std::wstring>{result};
+}
+
+inline doof::Result<std::string, std::string> wideToUtf8(const std::wstring& value) {
+    if (value.empty()) {
+        return doof::Success<std::string>{std::string()};
+    }
+    const int size = ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()), nullptr, 0, nullptr, nullptr);
+    if (size == 0) {
+        return doof::Failure<std::string>{windowsError("Failed to encode Windows path as UTF-8")};
+    }
+    std::string result(static_cast<size_t>(size), '\0');
+    if (::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()), result.data(), size, nullptr, nullptr) == 0) {
+        return doof::Failure<std::string>{windowsError("Failed to encode Windows path as UTF-8")};
+    }
+    for (char& character : result) {
+        if (character == '\\') character = '/';
+    }
+    return doof::Success<std::string>{result};
+}
+
+inline doof::Result<std::string, std::string> windowsEnvironmentPath(const wchar_t* name) {
+    const wchar_t* value = ::_wgetenv(name);
+    if (value == nullptr || value[0] == L'\0') {
+        return doof::Failure<std::string>{"Windows environment path is unavailable"};
+    }
+    return wideToUtf8(std::wstring(value));
+}
+
+inline std::string windowsTempFallback() {
+    UINT size = MAX_PATH;
+    while (true) {
+        std::vector<wchar_t> path(size);
+        const UINT length = ::GetWindowsDirectoryW(path.data(), size);
+        if (length == 0) {
+            break;
+        }
+        if (length < size) {
+            auto converted = wideToUtf8(std::wstring(path.data(), length));
+            if (doof::is_success(converted)) {
+                return doof::success_value(converted) + "/Temp";
+            }
+            break;
+        }
+        size = length + 1;
+    }
+
+    const DWORD currentSize = ::GetCurrentDirectoryW(0, nullptr);
+    if (currentSize > 0) {
+        std::vector<wchar_t> path(currentSize);
+        const DWORD length = ::GetCurrentDirectoryW(currentSize, path.data());
+        if (length > 0 && length < currentSize) {
+            auto converted = wideToUtf8(std::wstring(path.data(), length));
+            if (doof::is_success(converted)) {
+                return doof::success_value(converted);
+            }
+        }
+    }
+    return "/";
+}
+#endif
 
 inline std::string dirname(const std::string& path) {
     const size_t separator = path.find_last_of('/');
@@ -34,7 +130,20 @@ inline std::string dirname(const std::string& path) {
 }
 
 inline doof::Result<std::string, std::string> executablePath() {
-#if defined(__APPLE__)
+#if defined(_WIN32)
+    DWORD size = 256;
+    while (true) {
+        std::vector<wchar_t> path(size);
+        const DWORD length = ::GetModuleFileNameW(nullptr, path.data(), size);
+        if (length == 0) {
+            return doof::Failure<std::string>{windowsError("Failed to determine executable path")};
+        }
+        if (length < size - 1) {
+            return wideToUtf8(std::wstring(path.data(), length));
+        }
+        size *= 2;
+    }
+#elif defined(__APPLE__)
     uint32_t size = PATH_MAX;
     std::vector<char> path(size);
     if (::_NSGetExecutablePath(path.data(), &size) != 0) {
@@ -127,7 +236,7 @@ inline doof::Result<std::string, std::string> resolveApplicationIdentifier(const
         if (appId.value().empty()) {
             return doof::Failure<std::string>{"Application identifier cannot be empty"};
         }
-        if (appId.value().find('/') != std::string::npos || appId.value().find('\0') != std::string::npos) {
+        if (appId.value().find('/') != std::string::npos || appId.value().find('\\') != std::string::npos || appId.value().find('\0') != std::string::npos) {
             return doof::Failure<std::string>{"Application identifier cannot contain a path separator or NUL byte"};
         }
     }
@@ -150,6 +259,31 @@ inline doof::Result<std::string, std::string> resolveApplicationIdentifier(const
 }
 
 inline doof::Result<void, std::string> ensureSingleDirectory(const std::string& path) {
+#if defined(_WIN32)
+    auto widePath = utf8ToWide(path);
+    if (!doof::is_success(widePath)) {
+        return doof::Failure<std::string>{doof::failure_error(widePath)};
+    }
+    const std::wstring& nativePath = doof::success_value(widePath);
+    const DWORD attributes = ::GetFileAttributesW(nativePath.c_str());
+    if (attributes != INVALID_FILE_ATTRIBUTES) {
+        if ((attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+            return doof::Success<void>{};
+        }
+        return doof::Failure<std::string>{path + " exists but is not a directory"};
+    }
+    const DWORD inspectionError = ::GetLastError();
+    if (inspectionError != ERROR_FILE_NOT_FOUND && inspectionError != ERROR_PATH_NOT_FOUND) {
+        return doof::Failure<std::string>{windowsError((std::string("Failed to inspect directory ") + path).c_str(), inspectionError)};
+    }
+    if (::CreateDirectoryW(nativePath.c_str(), nullptr) != 0) {
+        return doof::Success<void>{};
+    }
+    if (::GetLastError() == ERROR_ALREADY_EXISTS) {
+        return ensureSingleDirectory(path);
+    }
+    return doof::Failure<std::string>{windowsError((std::string("Failed to create directory ") + path).c_str())};
+#else
     struct stat st {};
     if (::stat(path.c_str(), &st) == 0) {
         if (S_ISDIR(st.st_mode)) {
@@ -171,6 +305,7 @@ inline doof::Result<void, std::string> ensureSingleDirectory(const std::string& 
     }
 
     return doof::Failure<std::string>{std::string("Failed to create directory ") + path + ": " + std::strerror(errno)};
+#endif
 }
 
 inline doof::Result<void, std::string> ensureDirectory(const std::string& path) {
@@ -181,7 +316,21 @@ inline doof::Result<void, std::string> ensureDirectory(const std::string& path) 
         return doof::Failure<std::string>{"Directory path contains a NUL byte"};
     }
 
-    size_t searchFrom = path[0] == '/' ? 1 : 0;
+    size_t searchFrom = path[0] == '/' ? 1 : (isWindowsDriveRoot(path) ? 3 : 0);
+#if defined(_WIN32)
+    if (path.rfind("//", 0) == 0) {
+        const size_t serverEnd = path.find('/', 2);
+        if (serverEnd != std::string::npos && serverEnd > 2) {
+            const size_t shareEnd = path.find('/', serverEnd + 1);
+            const bool hasShare = shareEnd == std::string::npos
+                ? serverEnd + 1 < path.size()
+                : shareEnd > serverEnd + 1;
+            if (hasShare) {
+                searchFrom = shareEnd == std::string::npos ? path.size() : shareEnd + 1;
+            }
+        }
+    }
+#endif
     while (true) {
         const size_t separator = path.find('/', searchFrom);
         const std::string current = separator == std::string::npos ? path : path.substr(0, separator);
@@ -201,6 +350,18 @@ inline doof::Result<void, std::string> ensureDirectory(const std::string& path) 
 }
 
 inline doof::Result<std::string, std::string> homeDirectory() {
+#if defined(_WIN32)
+    auto profile = windowsEnvironmentPath(L"USERPROFILE");
+    if (doof::is_success(profile)) {
+        return profile;
+    }
+    const wchar_t* drive = ::_wgetenv(L"HOMEDRIVE");
+    const wchar_t* relativePath = ::_wgetenv(L"HOMEPATH");
+    if (drive != nullptr && relativePath != nullptr && drive[0] != L'\0' && relativePath[0] != L'\0') {
+        return wideToUtf8(std::wstring(drive) + relativePath);
+    }
+    return doof::Failure<std::string>{"Failed to determine the home directory"};
+#else
     const char* home = std::getenv("HOME");
     if (home != nullptr && home[0] != '\0') {
         return doof::Success<std::string>{std::string(home)};
@@ -212,6 +373,7 @@ inline doof::Result<std::string, std::string> homeDirectory() {
     }
 
     return doof::Failure<std::string>{"Failed to determine the home directory"};
+#endif
 }
 
 inline doof::Result<std::string, std::string> applicationDirectory(
@@ -225,7 +387,14 @@ inline doof::Result<std::string, std::string> applicationDirectory(
         return doof::Failure<std::string>{doof::failure_error(identifier)};
     }
 
-#if defined(__APPLE__)
+#if defined(_WIN32)
+    const wchar_t* environmentName = std::strcmp(xdgEnvironmentName, "XDG_CACHE_HOME") == 0 ? L"LOCALAPPDATA" : L"APPDATA";
+    auto base = windowsEnvironmentPath(environmentName);
+    if (!doof::is_success(base)) {
+        return doof::Failure<std::string>{doof::failure_error(base)};
+    }
+    const std::string path = doof::success_value(base) + "/" + doof::success_value(identifier);
+#elif defined(__APPLE__)
     auto home = homeDirectory();
     if (!doof::is_success(home)) {
         return doof::Failure<std::string>{doof::failure_error(home)};
@@ -261,12 +430,26 @@ inline doof::Result<std::string, std::string> homeDirectory() {
 }
 
 inline std::string tempDirectory() {
+#if defined(_WIN32)
+    DWORD size = ::GetTempPathW(0, nullptr);
+    if (size == 0) {
+        return detail::windowsTempFallback();
+    }
+    std::vector<wchar_t> path(size);
+    const DWORD length = ::GetTempPathW(size, path.data());
+    if (length == 0 || length >= size) {
+        return detail::windowsTempFallback();
+    }
+    auto converted = detail::wideToUtf8(std::wstring(path.data(), length));
+    return doof::is_success(converted) ? doof::success_value(converted) : detail::windowsTempFallback();
+#else
     const char* temp = std::getenv("TMPDIR");
     if (temp != nullptr && temp[0] != '\0') {
         return std::string(temp);
     }
 
     return "/tmp";
+#endif
 }
 
 inline doof::Result<std::string, std::string> dataDirectory(const std::optional<std::string>& appId = std::nullopt) {
@@ -278,6 +461,18 @@ inline doof::Result<std::string, std::string> cacheDirectory(const std::optional
 }
 
 inline doof::Result<std::string, std::string> currentWorkingDirectory() {
+#if defined(_WIN32)
+    const DWORD size = ::GetCurrentDirectoryW(0, nullptr);
+    if (size == 0) {
+        return doof::Failure<std::string>{detail::windowsError("Failed to get current working directory")};
+    }
+    std::vector<wchar_t> buffer(size);
+    const DWORD length = ::GetCurrentDirectoryW(size, buffer.data());
+    if (length == 0 || length >= size) {
+        return doof::Failure<std::string>{detail::windowsError("Failed to get current working directory")};
+    }
+    return detail::wideToUtf8(std::wstring(buffer.data(), length));
+#else
     size_t size = 256;
     while (true) {
         std::vector<char> buffer(size);
@@ -292,13 +487,36 @@ inline doof::Result<std::string, std::string> currentWorkingDirectory() {
 
         size *= 2;
     }
+#endif
 }
 
 inline doof::Result<std::string, std::string> absolute(const std::string& path) {
     if (path.find('\0') != std::string::npos) {
         return doof::Failure<std::string>{"Path contains a NUL byte"};
     }
-    if (!path.empty() && path.front() == '/') {
+#if defined(_WIN32)
+    if ((!path.empty() && path.front() == '/') || detail::isWindowsDriveRoot(path)) {
+        return doof::Success<std::string>{path};
+    }
+
+    auto widePath = detail::utf8ToWide(path);
+    if (!doof::is_success(widePath)) {
+        return doof::Failure<std::string>{doof::failure_error(widePath)};
+    }
+
+    const std::wstring& nativePath = doof::success_value(widePath);
+    const DWORD size = ::GetFullPathNameW(nativePath.c_str(), 0, nullptr, nullptr);
+    if (size == 0) {
+        return doof::Failure<std::string>{detail::windowsError("Failed to resolve absolute path")};
+    }
+    std::vector<wchar_t> resolved(size);
+    const DWORD length = ::GetFullPathNameW(nativePath.c_str(), size, resolved.data(), nullptr);
+    if (length == 0 || length >= size) {
+        return doof::Failure<std::string>{detail::windowsError("Failed to resolve absolute path")};
+    }
+    return detail::wideToUtf8(std::wstring(resolved.data(), length));
+#else
+    if ((!path.empty() && path.front() == '/') || detail::isWindowsDriveRoot(path)) {
         return doof::Success<std::string>{path};
     }
 
@@ -311,6 +529,7 @@ inline doof::Result<std::string, std::string> absolute(const std::string& path) 
         return doof::Success<std::string>{base};
     }
     return doof::Success<std::string>{base + "/" + path};
+#endif
 }
 
 inline doof::Result<void, std::string> setCurrentWorkingDirectory(const std::string& path) {
@@ -318,11 +537,22 @@ inline doof::Result<void, std::string> setCurrentWorkingDirectory(const std::str
         return doof::Failure<std::string>{"Working directory path contains a NUL byte"};
     }
 
+#if defined(_WIN32)
+    auto widePath = detail::utf8ToWide(path);
+    if (!doof::is_success(widePath)) {
+        return doof::Failure<std::string>{doof::failure_error(widePath)};
+    }
+    if (::SetCurrentDirectoryW(doof::success_value(widePath).c_str()) != 0) {
+        return doof::Success<void>{};
+    }
+    return doof::Failure<std::string>{detail::windowsError("Failed to set current working directory")};
+#else
     if (::chdir(path.c_str()) == 0) {
         return doof::Success<void>{};
     }
 
     return doof::Failure<std::string>{std::string("Failed to set current working directory: ") + std::strerror(errno)};
+#endif
 }
 
 inline doof::Result<std::string, std::string> resourcesDirectory() {

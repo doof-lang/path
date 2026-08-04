@@ -1,9 +1,10 @@
 # std/path Guide
 
-`std/path` provides POSIX-style path manipulation and application directory
-helpers. String operations such as `join`, `dirname`, and `basename` do not touch
-the filesystem. Directory discovery helpers call native platform APIs and return
-normalized absolute paths.
+`std/path` provides portable path manipulation and application directory
+helpers. Public paths use `/` separators on every platform. String operations
+such as `join`, `dirname`, and `basename` do not touch the filesystem. Directory
+discovery helpers call native platform APIs and return normalized absolute paths.
+Windows drive roots use the form `C:/`; native backslash input is accepted.
 
 ## Normalization Rules
 
@@ -40,7 +41,7 @@ Use these helpers for string-level path analysis:
 - `basename(path)` returns the last path component, or `""` for root.
 - `stem(path)` returns the basename without the final extension.
 - `extension(path)` returns the final extension including the leading dot, or `""`.
-- `isAbsolute(path)` checks for a leading `/`.
+- `isAbsolute(path)` recognizes a leading `/` or a Windows drive root such as `C:/`.
 
 Leading dots are treated as part of the filename, so `.env` has no extension.
 

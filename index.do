@@ -35,7 +35,7 @@ export function currentWorkingDirectory(): Result<string, string> {
 }
 
 export function absolute(path: string): Result<string, string> {
-  return normalizePathResult(_absolute(path))
+  return normalizePathResult(_absolute(join([path])))
 }
 
 export function resourcesDirectory(): Result<string, string> {
@@ -54,7 +54,7 @@ export function resourcePath(path: string): Result<string, string> {
 }
 
 export function join(parts: string[]): string {
-  let absolute = false
+  let prefix = ""
   let segments: string[] = []
 
   for part of parts {
@@ -62,12 +62,21 @@ export function join(parts: string[]): string {
       continue
     }
 
-    if isAbsolute(part) {
-      absolute = true
+    normalizedPart := part.replaceAll("\\", "/")
+    partPrefix := rootPrefix(normalizedPart)
+    if partPrefix != "" {
+      prefix = partPrefix
       segments = []
     }
 
-    rawSegments := part.split("/")
+    let segmentSource = normalizedPart
+    if partPrefix != "" {
+      segmentSource = normalizedPart.slice(partPrefix.length)
+      if segmentSource.startsWith("/") {
+        segmentSource = segmentSource.slice(1)
+      }
+    }
+    rawSegments := segmentSource.split("/")
     for rawSegment of rawSegments {
       if rawSegment.length == 0 || rawSegment == "." {
         continue
@@ -76,7 +85,7 @@ export function join(parts: string[]): string {
       if rawSegment == ".." {
         if segments.length > 0 && segments[segments.length - 1] != ".." {
           segments = segments.slice(0, segments.length - 1)
-        } else if !absolute {
+        } else if prefix == "" {
           segments.push("..")
         }
         continue
@@ -86,13 +95,14 @@ export function join(parts: string[]): string {
     }
   }
 
-  return renderPath(segments, absolute)
+  return renderPath(segments, prefix)
 }
 
 export function dirname(path: string): string {
   normalized := join([path])
-  if normalized == "/" {
-    return "/"
+  prefix := rootPrefix(normalized)
+  if normalized == "/" || (prefix != "" && normalized == prefix + "/") {
+    return normalized
   }
 
   separator := lastSeparatorIndex(normalized)
@@ -102,12 +112,16 @@ export function dirname(path: string): string {
   if separator == 0 {
     return "/"
   }
+  if prefix != "" && separator == prefix.length {
+    return prefix + "/"
+  }
   return normalized.substring(0, separator)
 }
 
 export function basename(path: string): string {
   normalized := join([path])
-  if normalized == "/" {
+  prefix := rootPrefix(normalized)
+  if normalized == "/" || (prefix != "" && normalized == prefix + "/") {
     return ""
   }
 
@@ -145,20 +159,43 @@ export function extension(path: string): string {
 }
 
 export function isAbsolute(path: string): bool {
-  return path.startsWith("/")
+  return rootPrefix(path.replaceAll("\\", "/")) != ""
 }
 
-function renderPath(segments: string[], absolute: bool): string {
+function rootPrefix(path: string): string {
+  if path.startsWith("//") {
+    components := path.split("/")
+    if components.length >= 4 && components[2] != "" && components[3] != "" {
+      return "//" + components[2] + "/" + components[3]
+    }
+  }
+  if path.startsWith("/") {
+    return "/"
+  }
+  if path.length >= 3 && isAsciiLetter(path.charAt(0)) && path.charAt(1) == ':' && path.charAt(2) == '/' {
+    return path.substring(0, 2)
+  }
+  return ""
+}
+
+function isAsciiLetter(character: char): bool {
+  return (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z')
+}
+
+function renderPath(segments: string[], prefix: string): string {
   if segments.length == 0 {
-    return if absolute then "/" else "."
+    return if prefix == "" then "." else if prefix == "/" then "/" else prefix + "/"
   }
 
   let output = segments[0]
   for index of 1..<segments.length {
     output += "/" + segments[index]
   }
-  if absolute {
+  if prefix == "/" {
     return "/" + output
+  }
+  if prefix != "" {
+    return prefix + "/" + output
   }
   return output
 }

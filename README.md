@@ -1,6 +1,9 @@
 # std/path
 
-POSIX path manipulation utilities. All functions operate on string paths and handle normalization (resolving `.` and `..` segments) without touching the filesystem.
+Portable path manipulation utilities. Public paths use `/` separators on every
+platform, while Windows drive roots such as `C:/` and native backslash input are
+recognized. String helpers normalize `.` and `..` segments without touching the
+filesystem.
 
 ## Documentation
 
@@ -110,10 +113,11 @@ extension("Makefile")        // ""
 
 #### `isAbsolute(path: string): bool`
 
-Return `true` if the path starts with `/`.
+Return `true` if the path starts with `/` or has a Windows drive root.
 
 ```doof
 isAbsolute("/usr/local/bin") // true
+isAbsolute("C:\\Users\\doof") // true
 isAbsolute("relative/path") // false
 ```
 

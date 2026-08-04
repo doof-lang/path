@@ -38,6 +38,11 @@ export function testAbsoluteResolvesRelativeAndNormalizesAbsolutePaths(): none {
   assert(try! absolute("/tmp/../tmp/file.do") == "/tmp/file.do", "expected absolute paths to remain absolute and normalize")
 }
 
+export function testAbsoluteNormalizesNativeWindowsSeparators(): none {
+  assert(try! absolute("\\rooted\\folder") == try! absolute("/rooted/folder"), "expected rooted backslash input to resolve from the filesystem root")
+  assert(try! absolute("\\\\server\\share\\folder") == "//server/share/folder", "expected a UNC path to remain absolute")
+}
+
 export function testJoinConcatenatesRelativeParts(): none {
   assert(
     join(["foo", "bar", "baz.txt"]) == "foo/bar/baz.txt",
@@ -102,6 +107,26 @@ export function testIsAbsoluteChecksForLeadingSlash(): none {
   assert(isAbsolute("tmp/log") == false, "expected a relative path to remain relative")
 }
 
+export function testWindowsDrivePathsAreAbsoluteAndNormalized(): none {
+  assert(isAbsolute("C:/Users/doof") == true, "expected a slash-separated Windows drive path to be absolute")
+  assert(isAbsolute("C:\\Users\\doof") == true, "expected a backslash-separated Windows drive path to be absolute")
+  assert(isAbsolute("C:relative") == false, "expected a drive-relative Windows path to remain relative")
+  assert(isAbsolute("1:/not-a-drive") == false, "expected a non-letter drive prefix to remain relative")
+  assert(join(["C:\\Users\\doof", "src", "..", "main.do"]) == "C:/Users/doof/main.do", "expected Windows paths to normalize to public slash separators")
+}
+
+export function testWindowsDriveRootPathHelpers(): none {
+  assert(join(["C:/"]) == "C:/", "expected join to preserve a Windows drive root")
+  assert(dirname("C:/file.do") == "C:/", "expected dirname to preserve a Windows drive root")
+  assert(basename("C:/") == "", "expected basename of a Windows drive root to be empty")
+}
+
+export function testWindowsNetworkPathsPreserveTheirShareRoot(): none {
+  assert(isAbsolute("\\\\server\\share\\folder"), "expected a Windows network path to be absolute")
+  assert(join(["\\\\server\\share\\folder", "..", "file.do"]) == "//server/share/file.do", "expected a Windows network path to preserve its share root")
+  assert(join(["//server/share", "..", ".."]) == "//server/share/", "expected parent traversal to stop at a Windows share root")
+}
+
 export function testHomeAndTempDirectoryReturnAbsolutePaths(): none {
   home := try! homeDirectory()
   temp := tempDirectory()
@@ -151,6 +176,11 @@ export function testApplicationDirectoriesRequireAnIdentifierForConsoleApps(): n
 
   assert(isFailure(data), "expected dataDirectory without an app id to fail for console applications")
   assert(isFailure(cache), "expected cacheDirectory without an app id to fail for console applications")
+}
+
+export function testApplicationDirectoriesRejectNativePathSeparators(): none {
+  assert(isFailure(dataDirectory("dev/doof")), "expected a slash in an application id to be rejected")
+  assert(isFailure(cacheDirectory("dev\\doof")), "expected a backslash in an application id to be rejected")
 }
 
 export function testApplicationDirectoriesUseSuppliedIdentifierForConsoleApps(): none {
