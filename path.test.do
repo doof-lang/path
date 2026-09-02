@@ -1,6 +1,7 @@
 import {
   absolute, basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
-  isAbsolute, join, resourcePath, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
+  isAbsolute, join, normalize, relative, resolveWithin, resourcePath, resourcesDirectory, setCurrentWorkingDirectory,
+  stem, tempDirectory,
 } from "./index"
 import { isDirectory, remove, writeText } from "std/fs"
 
@@ -84,6 +85,42 @@ export function testJoinReturnsDotForAnEmptyRelativeResult(): none {
     "expected join to use dot for an empty relative path"
   )
   assert(join([]) == ".", "expected join of no parts to be dot")
+}
+
+export function testNormalizeProvidesNamedSinglePathNormalization(): none {
+  assert(normalize("foo//bar/../file.do") == "foo/file.do", "expected normalize to clean a relative path")
+  assert(normalize("C:\\Users\\doof\\..\\main.do") == "C:/Users/main.do", "expected normalize to use public separators")
+  assert(normalize("") == ".", "expected normalize of an empty path to be dot")
+}
+
+export function testRelativeBuildsPathsBetweenDirectories(): none {
+  assert(try! relative("/home/user/project/src", "/home/user/assets/logo.png") == "../../assets/logo.png", "expected a relative path between sibling trees")
+  assert(try! relative("/home/user/project", "/home/user/project") == ".", "expected identical paths to produce dot")
+  assert(try! relative("foo/bar/..", "foo/baz/./file.do") == "baz/file.do", "expected relative to normalize both inputs")
+}
+
+export function testRelativeHandlesWindowsAndNetworkRoots(): none {
+  assert(try! relative("C:/Users/doof/src", "c:/Users/doof/tests") == "../tests", "expected drive roots to compare without case")
+  assert(try! relative("C:/Users/Doof", "c:/users/doof/tests") == "tests", "expected Windows path segments to compare without case")
+  assert(try! relative("//server/share/src", "//SERVER/SHARE/assets") == "../assets", "expected network roots to compare without case")
+  assert(isFailure(relative("C:/src", "D:/src")), "expected different drive roots to fail")
+  assert(isFailure(relative("//server/share/src", "//server/other/src")), "expected different network shares to fail")
+  assert(isFailure(relative("relative", "/absolute")), "expected mixed relative and absolute paths to fail")
+}
+
+export function testResolveWithinAcceptsPathsInsideAnAbsoluteBase(): none {
+  assert(try! resolveWithin("/srv/app", "assets/logo.png") == "/srv/app/assets/logo.png", "expected a child path to resolve")
+  assert(try! resolveWithin("/srv/app", "assets/../config.json") == "/srv/app/config.json", "expected safe traversal to normalize")
+  assert(try! resolveWithin("/srv/app", ".") == "/srv/app", "expected the base itself to resolve")
+  assert(try! resolveWithin("/", "tmp/file.do") == "/tmp/file.do", "expected the filesystem root to contain absolute children")
+  assert(try! resolveWithin("C:/Users/Doof", "c:/users/doof/file.do") == "c:/users/doof/file.do", "expected Windows containment to compare without case")
+}
+
+export function testResolveWithinRejectsPathsOutsideAnAbsoluteBase(): none {
+  assert(isFailure(resolveWithin("/srv/app", "../secret")), "expected parent traversal outside the base to fail")
+  assert(isFailure(resolveWithin("/srv/app", "/srv/application/file")), "expected a sibling with the same text prefix to fail")
+  assert(isFailure(resolveWithin("C:/app", "D:/file")), "expected a different drive root to fail")
+  assert(isFailure(resolveWithin("relative/base", "file")), "expected a relative base to fail")
 }
 
 export function testDirnameAndBasenameNormalizeTrailingSeparators(): none {

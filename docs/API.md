@@ -33,6 +33,16 @@ All native directory helpers normalize their successful results through
 and applies the same normalization. It returns `Failure` if the working
 directory cannot be read.
 
+`normalize(path)` is the named single-path form of `join([path])`.
+
+`relative(fromPath, toPath)` returns the normalized path from directory
+`fromPath` to `toPath`. It returns `Failure` when the paths have different roots.
+
+`resolveWithin(base, path)` resolves a path beneath an absolute base and
+returns `Failure` if lexical normalization would escape that base. It does not
+access the filesystem, so applications must separately account for symbolic
+links when containment depends on the filesystem layout.
+
 ## Path Splitting
 
 Use these helpers for string-level path analysis:
@@ -72,19 +82,22 @@ blocked := resourcePath("../../badpanda") // Failure
 ```doof
 export function homeDirectory(): Result<string, string>
 export function tempDirectory(): string
-export function dataDirectory(appId: string | null = null): Result<string, string>
-export function cacheDirectory(appId: string | null = null): Result<string, string>
+export function dataDirectory(appId: string | none = none): Result<string, string>
+export function cacheDirectory(appId: string | none = none): Result<string, string>
 export function currentWorkingDirectory(): Result<string, string>
 export function absolute(path: string): Result<string, string>
 export function resourcesDirectory(): Result<string, string>
 export function resourcePath(path: string): Result<string, string>
-export import function setCurrentWorkingDirectory(path: string): Result<void, string>
+export import function setCurrentWorkingDirectory(path: string): Result<none, string>
 ```
 
 ### String path helpers
 
 ```doof
 export function join(parts: string[]): string
+export function normalize(path: string): string
+export function relative(fromPath: string, toPath: string): Result<string, string>
+export function resolveWithin(base: string, path: string): Result<string, string>
 export function dirname(path: string): string
 export function basename(path: string): string
 export function stem(path: string): string

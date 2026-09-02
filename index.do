@@ -44,13 +44,70 @@ export function resourcesDirectory(): Result<string, string> {
 
 export function resourcePath(path: string): Result<string, string> {
   try resources := resourcesDirectory()
-  resolved := join([resources, path])
+  return resolveWithin(resources, path)
+}
 
-  if resolved == resources || resolved.startsWith(resources + "/") {
-    return Success { value: resolved }
+export function normalize(path: string): string {
+  return join([path])
+}
+
+export function relative(fromPath: string, toPath: string): Result<string, string> {
+  normalizedFrom := normalize(fromPath)
+  normalizedTo := normalize(toPath)
+  fromPrefix := rootPrefix(normalizedFrom)
+  toPrefix := rootPrefix(normalizedTo)
+
+  if !rootsEqual(fromPrefix, toPrefix) {
+    return Failure { error: "Cannot create a relative path between different roots" }
   }
 
-  return Failure { error: "Resource path cannot escape the resources directory" }
+  fromSegments := pathSegments(normalizedFrom, fromPrefix)
+  toSegments := pathSegments(normalizedTo, toPrefix)
+  caseInsensitive := isWindowsRoot(fromPrefix)
+  let shared = 0
+  while shared < fromSegments.length && shared < toSegments.length
+    && segmentsEqual(fromSegments[shared], toSegments[shared], caseInsensitive) {
+    shared += 1
+  }
+
+  let result: string[] = []
+  for _ of shared..<fromSegments.length {
+    result.push("..")
+  }
+  for index of shared..<toSegments.length {
+    result.push(toSegments[index])
+  }
+
+  return Success { value: join(result) }
+}
+
+export function resolveWithin(base: string, path: string): Result<string, string> {
+  normalizedBase := normalize(base)
+  if !isAbsolute(normalizedBase) {
+    return Failure { error: "Base path must be absolute" }
+  }
+
+  resolved := join([normalizedBase, path])
+  basePrefix := rootPrefix(normalizedBase)
+  resolvedPrefix := rootPrefix(resolved)
+  if !rootsEqual(basePrefix, resolvedPrefix) {
+    return Failure { error: "Resolved path cannot escape the base path" }
+  }
+
+  baseSegments := pathSegments(normalizedBase, basePrefix)
+  resolvedSegments := pathSegments(resolved, resolvedPrefix)
+  caseInsensitive := isWindowsRoot(basePrefix)
+  if baseSegments.length > resolvedSegments.length {
+    return Failure { error: "Resolved path cannot escape the base path" }
+  }
+
+  for index of 0..<baseSegments.length {
+    if !segmentsEqual(baseSegments[index], resolvedSegments[index], caseInsensitive) {
+      return Failure { error: "Resolved path cannot escape the base path" }
+    }
+  }
+
+  return Success { value: resolved }
 }
 
 export function join(parts: string[]): string {
@@ -180,6 +237,33 @@ function rootPrefix(path: string): string {
 
 function isAsciiLetter(character: char): bool {
   return (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z')
+}
+
+function rootsEqual(left: string, right: string): bool {
+  return left.toLowerCase() == right.toLowerCase()
+}
+
+function isWindowsRoot(prefix: string): bool {
+  return prefix != "" && prefix != "/"
+}
+
+function segmentsEqual(left: string, right: string, caseInsensitive: bool): bool {
+  return if caseInsensitive then left.toLowerCase() == right.toLowerCase() else left == right
+}
+
+function pathSegments(path: string, prefix: string): readonly string[] {
+  let source = path
+  if prefix != "" {
+    source = path.slice(prefix.length)
+    if source.startsWith("/") {
+      source = source.slice(1)
+    }
+  }
+
+  if source == "" || source == "." {
+    return []
+  }
+  return source.split("/")
 }
 
 function renderPath(segments: string[], prefix: string): string {

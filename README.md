@@ -8,6 +8,7 @@ filesystem.
 ## Documentation
 
 - [Guide and API reference](docs/API.md) explains normalization rules, directory helpers, path splitting, and filesystem-independent behavior.
+- [Cookbook](docs/cookbook/README.md) shows common workflows for portable paths, resources, relative paths, and lexical containment.
 - Tests can be run with `doof test path`.
 
 ## Usage
@@ -15,7 +16,8 @@ filesystem.
 ```doof
 import {
 	absolute, basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
-	isAbsolute, join, resourcePath, resourcesDirectory, setCurrentWorkingDirectory, stem, tempDirectory,
+	isAbsolute, join, normalize, relative, resolveWithin, resourcePath, resourcesDirectory, setCurrentWorkingDirectory,
+	stem, tempDirectory,
 } from "std/path"
 
 joined := join(["/home/user", "projects", "../docs/readme.txt"])
@@ -35,6 +37,8 @@ resources := try! resourcesDirectory()
 logo := try! resourcePath("images/logo.png")
 try! setCurrentWorkingDirectory(home)
 resolved := try! absolute("src/main.do")
+rel := try! relative("/home/user/projects", "/home/user/docs/readme.txt")
+safe := try! resolveWithin("/srv/app", "assets/logo.png")
 ```
 
 ## Exports
@@ -59,6 +63,38 @@ join(["foo/norm/../bar"])                  // "foo/bar"
 join(["foo/bar", "/tmp", "logs/out.txt"]) // "/tmp/logs/out.txt"
 join(["foo", "../../bar"])                // "../bar"
 join([])                                  // "."
+```
+
+---
+
+#### `normalize(path: string): string`
+
+Normalize a single path using the same rules as `join`. This is equivalent to `join([path])`.
+
+```doof
+normalize("foo//bar/../file.do") // "foo/file.do"
+```
+
+---
+
+#### `relative(fromPath: string, toPath: string): Result<string, string>`
+
+Return the normalized path from directory `fromPath` to `toPath`. Returns `Failure` if the paths use different roots, including different Windows drives or network shares.
+
+```doof
+relative("/home/user/project/src", "/home/user/assets") // Success("../../assets")
+relative("C:/src", "D:/src")                           // Failure
+```
+
+---
+
+#### `resolveWithin(base: string, path: string): Result<string, string>`
+
+Resolve `path` lexically within the absolute path `base`. Returns `Failure` if `base` is relative or the result would escape it. This operation does not access the filesystem and therefore does not resolve symbolic links.
+
+```doof
+resolveWithin("/srv/app", "assets/logo.png") // Success("/srv/app/assets/logo.png")
+resolveWithin("/srv/app", "../secret")       // Failure
 ```
 
 ---
@@ -143,7 +179,7 @@ tempDirectory() // e.g. "/tmp"
 
 ---
 
-#### `dataDirectory(appId: string | null = null): Result<string, string>`
+#### `dataDirectory(appId: string | none = none): Result<string, string>`
 
 Return the per-application data directory as an absolute normalized path. On success, the directory exists and is ready to use; if the target path exists but is not a directory, this returns `Failure`. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
 
@@ -153,7 +189,7 @@ data := try! dataDirectory("dev.example.tool")
 
 ---
 
-#### `cacheDirectory(appId: string | null = null): Result<string, string>`
+#### `cacheDirectory(appId: string | none = none): Result<string, string>`
 
 Return the per-application cache directory as an absolute normalized path. On success, the directory exists and is ready to use; if the target path exists but is not a directory, this returns `Failure`. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
 
@@ -194,7 +230,7 @@ blocked := resourcePath("../../badpanda") // Failure
 
 ---
 
-#### `setCurrentWorkingDirectory(path: string): Result<void, string>`
+#### `setCurrentWorkingDirectory(path: string): Result<none, string>`
 
 Change the process current working directory.
 
