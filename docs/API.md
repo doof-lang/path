@@ -87,6 +87,7 @@ export function cacheDirectory(appId: string | none = none): Result<string, stri
 export function currentWorkingDirectory(): Result<string, string>
 export function absolute(path: string): Result<string, string>
 export function resourcesDirectory(): Result<string, string>
+export function executablePath(): Result<string, string>
 export function resourcePath(path: string): Result<string, string>
 export import function setCurrentWorkingDirectory(path: string): Result<none, string>
 ```

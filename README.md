@@ -5,6 +5,10 @@ platform, while Windows drive roots such as `C:/` and native backslash input are
 recognized. String helpers normalize `.` and `..` segments without touching the
 filesystem.
 
+`executablePath(): Result<string, string>` returns the normalized absolute path
+of the running executable on Windows, macOS, and Linux/GNU. Discovery errors
+and unsupported platforms return `Failure`; the path does not imply read access.
+
 ## Documentation
 
 - [Guide and API reference](docs/API.md) explains normalization rules, directory helpers, path splitting, and filesystem-independent behavior.

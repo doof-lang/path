@@ -1,9 +1,17 @@
 import {
   absolute, basename, cacheDirectory, currentWorkingDirectory, dataDirectory, dirname, extension, homeDirectory,
   isAbsolute, join, normalize, relative, resolveWithin, resourcePath, resourcesDirectory, setCurrentWorkingDirectory,
-  stem, tempDirectory,
+  stem, tempDirectory, executablePath,
 } from "./index"
-import { isDirectory, remove, writeText } from "std/fs"
+import { exists, isDirectory, remove, writeText } from "std/fs"
+
+export function testExecutablePathIdentifiesRunningFile(): none {
+  path := try! executablePath()
+  assert(isAbsolute(path), "expected an absolute executable path")
+  assert(path == normalize(path), "expected normalized executable path")
+  assert(exists(path) && !isDirectory(path), "expected the running executable file")
+  assert(try! executablePath() == path, "expected stable executable identity")
+}
 
 function isSuccess<T, E>(result: Result<T, E>): bool {
   return case result {

@@ -5,6 +5,7 @@ import isolated function _cacheDirectory(appId: string | none = none): Result<st
 import isolated function _currentWorkingDirectory(): Result<string, string> from "native_path.hpp" as doof_path::currentWorkingDirectory
 import isolated function _absolute(path: string): Result<string, string> from "native_path.hpp" as doof_path::absolute
 import isolated function _resourcesDirectory(): Result<string, string> from "native_path.hpp" as doof_path::resourcesDirectory
+import isolated function _executablePath(): Result<string, string> from "native_path.hpp" as doof_path::detail::executablePath
 export import function setCurrentWorkingDirectory(path: string): Result<none, string> from "native_path.hpp" as doof_path::setCurrentWorkingDirectory
 
 function normalizePathResult(result: Result<string, string>): Result<string, string> {
@@ -40,6 +41,10 @@ export function absolute(path: string): Result<string, string> {
 
 export function resourcesDirectory(): Result<string, string> {
   return normalizePathResult(_resourcesDirectory())
+}
+
+export function executablePath(): Result<string, string> {
+  return normalizePathResult(_executablePath())
 }
 
 export function resourcePath(path: string): Result<string, string> {
