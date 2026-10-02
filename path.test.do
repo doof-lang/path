@@ -6,11 +6,11 @@ import {
 import { exists, isDirectory, remove, writeText } from "std/fs"
 
 export function testExecutablePathIdentifiesRunningFile(): none {
-  path := try! executablePath()
+  path := executablePath()!
   assert(isAbsolute(path), "expected an absolute executable path")
   assert(path == normalize(path), "expected normalized executable path")
   assert(exists(path) && !isDirectory(path), "expected the running executable file")
-  assert(try! executablePath() == path, "expected stable executable identity")
+  assert(executablePath()! == path, "expected stable executable identity")
 }
 
 function isSuccess<T, E>(result: Result<T, E>): bool {
@@ -41,15 +41,15 @@ function matchesWorkingDirectoryPath(actual: string, expected: string): bool {
 }
 
 export function testAbsoluteResolvesRelativeAndNormalizesAbsolutePaths(): none {
-  cwd := try! currentWorkingDirectory()
-  assert(try! absolute(".") == join([cwd]), "expected dot to resolve to the working directory")
-  assert(try! absolute("nested/../file.do") == join([cwd, "file.do"]), "expected relative paths to resolve and normalize")
-  assert(try! absolute("/tmp/../tmp/file.do") == "/tmp/file.do", "expected absolute paths to remain absolute and normalize")
+  cwd := currentWorkingDirectory()!
+  assert(absolute(".")! == join([cwd]), "expected dot to resolve to the working directory")
+  assert(absolute("nested/../file.do")! == join([cwd, "file.do"]), "expected relative paths to resolve and normalize")
+  assert(absolute("/tmp/../tmp/file.do")! == "/tmp/file.do", "expected absolute paths to remain absolute and normalize")
 }
 
 export function testAbsoluteNormalizesNativeWindowsSeparators(): none {
-  assert(try! absolute("\\rooted\\folder") == try! absolute("/rooted/folder"), "expected rooted backslash input to resolve from the filesystem root")
-  assert(try! absolute("\\\\server\\share\\folder") == "//server/share/folder", "expected a UNC path to remain absolute")
+  assert(absolute("\\rooted\\folder")! == absolute("/rooted/folder")!, "expected rooted backslash input to resolve from the filesystem root")
+  assert(absolute("\\\\server\\share\\folder")! == "//server/share/folder", "expected a UNC path to remain absolute")
 }
 
 export function testJoinConcatenatesRelativeParts(): none {
@@ -102,26 +102,26 @@ export function testNormalizeProvidesNamedSinglePathNormalization(): none {
 }
 
 export function testRelativeBuildsPathsBetweenDirectories(): none {
-  assert(try! relative("/home/user/project/src", "/home/user/assets/logo.png") == "../../assets/logo.png", "expected a relative path between sibling trees")
-  assert(try! relative("/home/user/project", "/home/user/project") == ".", "expected identical paths to produce dot")
-  assert(try! relative("foo/bar/..", "foo/baz/./file.do") == "baz/file.do", "expected relative to normalize both inputs")
+  assert(relative("/home/user/project/src", "/home/user/assets/logo.png")! == "../../assets/logo.png", "expected a relative path between sibling trees")
+  assert(relative("/home/user/project", "/home/user/project")! == ".", "expected identical paths to produce dot")
+  assert(relative("foo/bar/..", "foo/baz/./file.do")! == "baz/file.do", "expected relative to normalize both inputs")
 }
 
 export function testRelativeHandlesWindowsAndNetworkRoots(): none {
-  assert(try! relative("C:/Users/doof/src", "c:/Users/doof/tests") == "../tests", "expected drive roots to compare without case")
-  assert(try! relative("C:/Users/Doof", "c:/users/doof/tests") == "tests", "expected Windows path segments to compare without case")
-  assert(try! relative("//server/share/src", "//SERVER/SHARE/assets") == "../assets", "expected network roots to compare without case")
+  assert(relative("C:/Users/doof/src", "c:/Users/doof/tests")! == "../tests", "expected drive roots to compare without case")
+  assert(relative("C:/Users/Doof", "c:/users/doof/tests")! == "tests", "expected Windows path segments to compare without case")
+  assert(relative("//server/share/src", "//SERVER/SHARE/assets")! == "../assets", "expected network roots to compare without case")
   assert(isFailure(relative("C:/src", "D:/src")), "expected different drive roots to fail")
   assert(isFailure(relative("//server/share/src", "//server/other/src")), "expected different network shares to fail")
   assert(isFailure(relative("relative", "/absolute")), "expected mixed relative and absolute paths to fail")
 }
 
 export function testResolveWithinAcceptsPathsInsideAnAbsoluteBase(): none {
-  assert(try! resolveWithin("/srv/app", "assets/logo.png") == "/srv/app/assets/logo.png", "expected a child path to resolve")
-  assert(try! resolveWithin("/srv/app", "assets/../config.json") == "/srv/app/config.json", "expected safe traversal to normalize")
-  assert(try! resolveWithin("/srv/app", ".") == "/srv/app", "expected the base itself to resolve")
-  assert(try! resolveWithin("/", "tmp/file.do") == "/tmp/file.do", "expected the filesystem root to contain absolute children")
-  assert(try! resolveWithin("C:/Users/Doof", "c:/users/doof/file.do") == "c:/users/doof/file.do", "expected Windows containment to compare without case")
+  assert(resolveWithin("/srv/app", "assets/logo.png")! == "/srv/app/assets/logo.png", "expected a child path to resolve")
+  assert(resolveWithin("/srv/app", "assets/../config.json")! == "/srv/app/config.json", "expected safe traversal to normalize")
+  assert(resolveWithin("/srv/app", ".")! == "/srv/app", "expected the base itself to resolve")
+  assert(resolveWithin("/", "tmp/file.do")! == "/tmp/file.do", "expected the filesystem root to contain absolute children")
+  assert(resolveWithin("C:/Users/Doof", "c:/users/doof/file.do")! == "c:/users/doof/file.do", "expected Windows containment to compare without case")
 }
 
 export function testResolveWithinRejectsPathsOutsideAnAbsoluteBase(): none {
@@ -173,7 +173,7 @@ export function testWindowsNetworkPathsPreserveTheirShareRoot(): none {
 }
 
 export function testHomeAndTempDirectoryReturnAbsolutePaths(): none {
-  home := try! homeDirectory()
+  home := homeDirectory()!
   temp := tempDirectory()
 
   assert(home.length > 0, "expected homeDirectory to return a non-empty path")
@@ -183,22 +183,22 @@ export function testHomeAndTempDirectoryReturnAbsolutePaths(): none {
 }
 
 export function testResourcesDirectoryReturnsAnAbsolutePath(): none {
-  resources := try! resourcesDirectory()
+  resources := resourcesDirectory()!
 
   assert(resources.length > 0, "expected resourcesDirectory to return a non-empty path")
   assert(isAbsolute(resources), "expected resourcesDirectory to return an absolute path")
 }
 
 export function testResourcePathResolvesInsideResourcesDirectory(): none {
-  resources := try! resourcesDirectory()
-  resolved := try! resourcePath("images/logo.png")
+  resources := resourcesDirectory()!
+  resolved := resourcePath("images/logo.png")!
 
   assert(resolved == join([resources, "images/logo.png"]), "expected resourcePath to resolve relative resources")
 }
 
 export function testResourcePathNormalizesTraversalInsideResourcesDirectory(): none {
-  resources := try! resourcesDirectory()
-  resolved := try! resourcePath("images/../config.json")
+  resources := resourcesDirectory()!
+  resolved := resourcePath("images/../config.json")!
 
   assert(resolved == join([resources, "config.json"]), "expected resourcePath to normalize safe traversal")
 }
@@ -230,8 +230,8 @@ export function testApplicationDirectoriesRejectNativePathSeparators(): none {
 
 export function testApplicationDirectoriesUseSuppliedIdentifierForConsoleApps(): none {
   appId := "dev.doof.path-tests"
-  data := try! dataDirectory(appId)
-  cache := try! cacheDirectory(appId)
+  data := dataDirectory(appId)!
+  cache := cacheDirectory(appId)!
 
   assert(data.length > 0, "expected dataDirectory to return a non-empty path")
   assert(cache.length > 0, "expected cacheDirectory to return a non-empty path")
@@ -244,52 +244,52 @@ export function testApplicationDirectoriesUseSuppliedIdentifierForConsoleApps():
 export function testApplicationDirectoriesAreCreatedAndReadyToUse(): none {
   dataAppId := "dev.doof.path-tests-created-data"
   cacheAppId := "dev.doof.path-tests-created-cache"
-  data := try! dataDirectory(dataAppId)
-  cache := try! cacheDirectory(cacheAppId)
+  data := dataDirectory(dataAppId)!
+  cache := cacheDirectory(cacheAppId)!
   dataProbe := join([data, "probe.txt"])
   cacheProbe := join([cache, "probe.txt"])
 
   assert(isDirectory(data), "expected dataDirectory to create a directory")
   assert(isDirectory(cache), "expected cacheDirectory to create a directory")
 
-  try! writeText(dataProbe, "data")
-  try! writeText(cacheProbe, "cache")
+  writeText(dataProbe, "data")!
+  writeText(cacheProbe, "cache")!
 
-  try! remove(dataProbe)
-  try! remove(cacheProbe)
-  try! remove(data)
-  try! remove(cache)
+  remove(dataProbe)!
+  remove(cacheProbe)!
+  remove(data)!
+  remove(cache)!
 }
 
 export function testApplicationDirectoryFailsWhenTargetIsNotADirectory(): none {
   appId := "dev.doof.path-tests-file-conflict"
-  directory := try! cacheDirectory(appId)
+  directory := cacheDirectory(appId)!
 
-  try! remove(directory)
-  try! writeText(directory, "not a directory")
+  remove(directory)!
+  writeText(directory, "not a directory")!
 
   blocked := cacheDirectory(appId)
   assert(isFailure(blocked), "expected cacheDirectory to fail when the target path is a file")
 
-  try! remove(directory)
+  remove(directory)!
 }
 
 export function testCurrentWorkingDirectoryAndSetterRoundTrip(): none {
-  original := try! currentWorkingDirectory()
+  original := currentWorkingDirectory()!
   let target = tempDirectory()
   if target == original {
-    target = try! homeDirectory()
+    target = homeDirectory()!
   }
 
   changeResult := setCurrentWorkingDirectory(target)
   assert(isSuccess(changeResult), "expected setCurrentWorkingDirectory to succeed for a known directory")
 
-  changed := try! currentWorkingDirectory()
+  changed := currentWorkingDirectory()!
 
   restoreResult := setCurrentWorkingDirectory(original)
   assert(isSuccess(restoreResult), "expected to restore the original working directory")
 
-  restored := try! currentWorkingDirectory()
+  restored := currentWorkingDirectory()!
 
   assert(matchesWorkingDirectoryPath(changed, target), "expected currentWorkingDirectory to reflect the changed directory")
   assert(restored == join([original]), "expected currentWorkingDirectory to match the restored directory")
