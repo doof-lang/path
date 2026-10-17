@@ -71,7 +71,7 @@ If the target exists but is not a directory, the result is `Failure<string>`.
 returns `Failure` if normalization would escape the resources directory.
 
 ```doof
-logo := try! resourcePath("images/logo.png")
+logo := resourcePath("images/logo.png")!
 blocked := resourcePath("../../badpanda") // Failure
 ```
 

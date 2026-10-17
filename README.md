@@ -32,17 +32,17 @@ base := basename(joined)  // "readme.txt"
 name := stem(joined)      // "readme"
 ext := extension(joined)  // ".txt"
 
-home := try! homeDirectory()
+home := homeDirectory()!
 temp := tempDirectory()
-data := try! dataDirectory("dev.example.tool")
-cache := try! cacheDirectory("dev.example.tool")
-cwd := try! currentWorkingDirectory()
-resources := try! resourcesDirectory()
-logo := try! resourcePath("images/logo.png")
-try! setCurrentWorkingDirectory(home)
-resolved := try! absolute("src/main.do")
-rel := try! relative("/home/user/projects", "/home/user/docs/readme.txt")
-safe := try! resolveWithin("/srv/app", "assets/logo.png")
+data := dataDirectory("dev.example.tool")!
+cache := cacheDirectory("dev.example.tool")!
+cwd := currentWorkingDirectory()!
+resources := resourcesDirectory()!
+logo := resourcePath("images/logo.png")!
+setCurrentWorkingDirectory(home)!
+resolved := absolute("src/main.do")!
+rel := relative("/home/user/projects", "/home/user/docs/readme.txt")!
+safe := resolveWithin("/srv/app", "assets/logo.png")!
 ```
 
 ## Exports
@@ -52,7 +52,7 @@ safe := try! resolveWithin("/srv/app", "assets/logo.png")
 Resolve a relative path against the current working directory and normalize the result. Already-absolute paths are normalized without changing their root.
 
 ```doof
-source := try! absolute("src/main.do")
+source := absolute("src/main.do")!
 ```
 
 ---
@@ -168,7 +168,7 @@ isAbsolute("relative/path") // false
 Return the current user's home directory as an absolute normalized path.
 
 ```doof
-home := try! homeDirectory()
+home := homeDirectory()!
 ```
 
 ---
@@ -188,7 +188,7 @@ tempDirectory() // e.g. "/tmp"
 Return the per-application data directory as an absolute normalized path. On success, the directory exists and is ready to use; if the target path exists but is not a directory, this returns `Failure`. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
 
 ```doof
-data := try! dataDirectory("dev.example.tool")
+data := dataDirectory("dev.example.tool")!
 ```
 
 ---
@@ -198,7 +198,7 @@ data := try! dataDirectory("dev.example.tool")
 Return the per-application cache directory as an absolute normalized path. On success, the directory exists and is ready to use; if the target path exists but is not a directory, this returns `Failure`. Bundled applications use their bundle identifier when `appId` is omitted, and reject a supplied `appId` unless it matches the bundle identifier. Console applications require `appId`.
 
 ```doof
-cache := try! cacheDirectory("dev.example.tool")
+cache := cacheDirectory("dev.example.tool")!
 ```
 
 ---
@@ -208,7 +208,7 @@ cache := try! cacheDirectory("dev.example.tool")
 Return the process current working directory as an absolute normalized path.
 
 ```doof
-cwd := try! currentWorkingDirectory()
+cwd := currentWorkingDirectory()!
 ```
 
 ---
@@ -218,7 +218,7 @@ cwd := try! currentWorkingDirectory()
 Return the directory that should be used to load bundled application resources. For macOS `.app` bundles this resolves to `Contents/Resources`; for iOS `.app` bundles this resolves to the app bundle directory. Other builds resolve to the directory containing the executable.
 
 ```doof
-resources := try! resourcesDirectory()
+resources := resourcesDirectory()!
 ```
 
 ---
@@ -228,7 +228,7 @@ resources := try! resourcesDirectory()
 Resolve `path` against `resourcesDirectory()` and return the normalized absolute path. Returns `Failure` if the normalized result would escape the resources directory.
 
 ```doof
-logo := try! resourcePath("images/logo.png")
+logo := resourcePath("images/logo.png")!
 blocked := resourcePath("../../badpanda") // Failure
 ```
 
@@ -239,5 +239,5 @@ blocked := resourcePath("../../badpanda") // Failure
 Change the process current working directory.
 
 ```doof
-try! setCurrentWorkingDirectory("/tmp")
+setCurrentWorkingDirectory("/tmp")!
 ```

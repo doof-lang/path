@@ -39,7 +39,7 @@ function resolveInput(argument: string): Result<string, string> {
   return absolute(argument)
 }
 
-input := try! resolveInput("documents/report.md")
+input := resolveInput("documents/report.md")!
 ```
 
 `absolute` does not require the target to exist. Use `std/fs` when existence or
@@ -53,10 +53,10 @@ reach `toPath`. Both inputs are normalized first.
 ```doof
 import { relative } from "std/path"
 
-asset := try! relative(
+asset := relative(
   "/home/user/project/src/pages",
   "/home/user/project/assets/logo.png",
-)
+)!
 // "../../assets/logo.png"
 ```
 
@@ -75,7 +75,7 @@ function uploadDestination(name: string): Result<string, string> {
   return resolveWithin("/srv/example/uploads", name)
 }
 
-logo := try! uploadDestination("images/logo.png")
+logo := uploadDestination("images/logo.png")!
 // "/srv/example/uploads/images/logo.png"
 
 blocked := uploadDestination("../../etc/passwd")
@@ -97,7 +97,7 @@ paths that lexically escape it.
 ```doof
 import { resourcePath } from "std/path"
 
-texturePath := try! resourcePath("images/texture.png")
+texturePath := resourcePath("images/texture.png")!
 ```
 
 When an API accepts file contents directly, the `std/fs` resource readers are
@@ -106,7 +106,7 @@ more concise:
 ```doof
 import { readTextResource } from "std/fs"
 
-template := try! readTextResource("templates/welcome.html")
+template := readTextResource("templates/welcome.html")!
 ```
 
 Declare both files and directories in the application's `doof.json`
@@ -121,8 +121,8 @@ Use `tempDirectory` for short-lived process files.
 ```doof
 import { cacheDirectory, dataDirectory, join, tempDirectory } from "std/path"
 
-dataFile := join([try! dataDirectory("dev.example.notes"), "notes.json"])
-thumbnail := join([try! cacheDirectory("dev.example.notes"), "thumbs", "42.png"])
+dataFile := join([dataDirectory("dev.example.notes")!, "notes.json"])
+thumbnail := join([cacheDirectory("dev.example.notes")!, "thumbs", "42.png"])
 scratch := join([tempDirectory(), "dev.example.notes", "import.tmp"])
 ```
 
@@ -157,11 +157,11 @@ capture the original directory and restore it on every non-terminating path.
 ```doof
 import { currentWorkingDirectory, setCurrentWorkingDirectory } from "std/path"
 
-original := try! currentWorkingDirectory()
-try! setCurrentWorkingDirectory("/srv/example")
+original := currentWorkingDirectory()!
+setCurrentWorkingDirectory("/srv/example")!
 
 result := runCommand()
-try! setCurrentWorkingDirectory(original)
+setCurrentWorkingDirectory(original)!
 return result
 ```
 
