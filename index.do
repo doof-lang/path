@@ -163,7 +163,7 @@ export function join(parts: string[]): string {
 export function dirname(path: string): string {
   normalized := join([path])
   prefix := rootPrefix(normalized)
-  if normalized == "/" || (prefix != "" && normalized == prefix + "/") {
+  if normalized == "/" || (prefix != "" && normalized == "${prefix}/") {
     return normalized
   }
 
@@ -175,7 +175,7 @@ export function dirname(path: string): string {
     return "/"
   }
   if prefix != "" && separator == prefix.length {
-    return prefix + "/"
+    return "${prefix}/"
   }
   return normalized.substring(0, separator)
 }
@@ -183,7 +183,7 @@ export function dirname(path: string): string {
 export function basename(path: string): string {
   normalized := join([path])
   prefix := rootPrefix(normalized)
-  if normalized == "/" || (prefix != "" && normalized == prefix + "/") {
+  if normalized == "/" || (prefix != "" && normalized == "${prefix}/") {
     return ""
   }
 
@@ -228,7 +228,7 @@ function rootPrefix(path: string): string {
   if path.startsWith("//") {
     components := path.split("/")
     if components.length >= 4 && components[2] != "" && components[3] != "" {
-      return "//" + components[2] + "/" + components[3]
+      return "//${components[2]}/${components[3]}"
     }
   }
   if path.startsWith("/") {
@@ -278,13 +278,13 @@ function renderPath(segments: string[], prefix: string): string {
 
   let output = segments[0]
   for index of 1..<segments.length {
-    output += "/" + segments[index]
+    output += "/${segments[index]}"
   }
   if prefix == "/" {
-    return "/" + output
+    return "/${output}"
   }
   if prefix != "" {
-    return prefix + "/" + output
+    return "${prefix}/${output}"
   }
   return output
 }

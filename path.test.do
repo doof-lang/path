@@ -36,8 +36,8 @@ function matchesWorkingDirectoryPath(actual: string, expected: string): bool {
   }
 
   // macOS commonly exposes /var through a /private/var realpath in getcwd().
-  return normalizedActual == "/private" + normalizedExpected
-    || normalizedExpected == "/private" + normalizedActual
+  return normalizedActual == "/private${normalizedExpected}"
+    || normalizedExpected == "/private${normalizedActual}"
 }
 
 export function testAbsoluteResolvesRelativeAndNormalizesAbsolutePaths(): none {
